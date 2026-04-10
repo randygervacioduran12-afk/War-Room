@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <title>War Room // Universal Adapter</title>
+    <link rel="stylesheet" href="/f61_ui_styles.css?v=2" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="left-rail glass">
+        <div class="brand-lockup">
+          <div class="brand-mark">WR</div>
+          <div>
+            <div class="brand-title">War Room // Universal Adapter</div>
+            <div class="brand-subtitle">Neon command deck • connected multi-agent control</div>
+          </div>
+        </div>
+
+        <div class="status-strip">
+          <div class="status-pill">
+            <span class="dot live"></span>
+            <span>command link active</span>
+          </div>
+          <div class="status-pill" id="active-run-id">No active run</div>
+          <div class="status-pill" id="active-run-meta">Create or select a run</div>
+        </div>
+
+        <nav class="nav-stack">
+          <button class="nav-btn active" data-view="overview">Overview</button>
+          <button class="nav-btn" data-view="signals">Signals</button>
+          <button class="nav-btn" data-view="operations">Operations</button>
+          <button class="nav-btn" data-view="notes">Notes</button>
+          <button class="nav-btn" data-view="workbench">Workbench</button>
+          <button class="nav-btn" data-view="projects">Projects</button>
+        </nav>
+
+        <div class="left-actions">
+          <button id="refresh-all-btn" class="action-btn">Refresh all</button>
+          <button id="theme-cycle-btn" class="action-btn">Cycle theme</button>
+          <button id="auto-poll-tasks-btn" class="action-btn">Auto poll: on</button>
+        </div>
+      </aside>
+
+      <main class="main-stage">
+        <section class="hero glass">
+          <div class="hero-copy">
+            <div class="hero-kicker">war room link active</div>
+            <h1>Universal Adapter Operations Deck</h1>
+            <p>
+              Spin up runs, dispatch specialist generals, summarize notes, monitor
+              task flow, inspect artifacts, and operate a proper multi-agent room.
+            </p>
+
+            <div class="hero-actions">
+              <button id="hero-launch-btn" class="primary-btn">Launch a run</button>
+              <button id="hero-dispatch-btn" class="secondary-btn">Dispatch task</button>
+            </div>
+          </div>
+
+          <div class="hero-orb-wrap">
+            <div class="hero-orb"></div>
+          </div>
+        </section>
+
+        <section id="view-overview" class="view-panel active-view">
+          <div class="grid two-up">
+            <div class="glass panel">
+              <div class="panel-head">
+                <h3>System link</h3>
+                <button id="health-refresh-btn" class="mini-btn">Refresh</button>
+              </div>
+              <div id="mini-health"></div>
+              <div class="metric-line">
+                <div id="health-overview">Booting…</div>
+                <div id="health-meta">Waiting for /health</div>
+              </div>
+              <div id="health-cards" class="card-grid"></div>
+            </div>
+
+            <div class="glass panel">
+              <div class="panel-head">
+                <h3>Signal corridor</h3>
+              </div>
+              <div id="signal-corridor"></div>
+              <div class="metric-row">
+                <div class="metric-box">
+                  <div class="metric-label">Task pulse</div>
+                  <div id="task-pulse" class="metric-value">0 queued · 0 claimed</div>
+                  <div id="task-pulse-meta" class="metric-meta">0 completed · 0 failed</div>
+                </div>
+                <div class="metric-box">
+                  <div class="metric-label">Artifact pulse</div>
+                  <div id="artifact-pulse" class="metric-value">No artifacts</div>
+                  <div id="artifact-pulse-meta" class="metric-meta">Dock idle</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid three-up">
+            <div class="glass panel">
+              <div class="panel-head">
+                <h3>Run registry</h3>
+                <button id="load-runs-btn" class="mini-btn">Load runs</button>
+              </div>
+              <div id="runs-list"></div>
+            </div>
+
+            <div class="glass panel">
+              <div class="panel-head">
+                <h3>Task board</h3>
+                <button id="load-tasks-btn" class="mini-btn">Load tasks</button>
+              </div>
+              <div id="task-board"></div>
+            </div>
+
+            <div class="glass panel">
+              <div class="panel-head">
+                <h3>Pet dock</h3>
+              </div>
+              <div id="pet-list"></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="view-signals" class="view-panel">
+          <div class="glass panel">
+            <div class="panel-head">
+              <h3>Artifacts</h3>
+              <button id="load-artifacts-btn" class="mini-btn">Refresh dock</button>
+            </div>
+            <div id="artifact-grid"></div>
+          </div>
+        </section>
+
+        <section id="view-operations" class="view-panel">
+          <div class="grid two-up">
+            <div class="glass panel">
+              <div class="panel-head">
+                <h3>Launch run</h3>
+                <button id="open-launch-btn" class="mini-btn">Focus</button>
+              </div>
+
+              <label>Project key</label>
+              <input id="run-project-key" value="demo-project" />
+
+              <label>Adapter key</label>
+              <input id="run-adapter-key" value="research_project" />
+
+              <label>Goal</label>
+              <textarea id="run-goal">Design an overnight AI research pipeline</textarea>
+
+              <button id="create-run-btn" class="primary-btn">Launch run</button>
+
+              <pre id="launch-result" class="result-box"></pre>
+            </div>
+
+            <div class="glass panel">
+              <div class="panel-head">
+                <h3>Dispatch mission</h3>
+              </div>
+
+              <label>General key</label>
+              <input id="dispatch-general-key" value="general_of_the_army" />
+
+              <label>Task type</label>
+              <input id="dispatch-task-type" value="plan" />
+
+              <label>Title</label>
+              <input id="dispatch-title" value="Manual mission dispatch" />
+
+              <label>Operator message</label>
+              <textarea id="dispatch-message">Summarize current state and recommend the next move.</textarea>
+
+              <button id="dispatch-task-btn" class="primary-btn">Dispatch mission</button>
+
+              <pre id="dispatch-result" class="result-box"></pre>
+            </div>
+          </div>
+        </section>
+
+        <section id="view-notes" class="view-panel">
+          <div class="glass panel">
+            <div class="panel-head">
+              <h3>Memory feed</h3>
+              <button id="load-memory-btn" class="mini-btn">Load memory</button>
+            </div>
+            <div id="memory-list"></div>
+          </div>
+        </section>
+
+        <section id="view-workbench" class="view-panel">
+          <div class="glass panel">
+            <div class="panel-head">
+              <h3>Workbench</h3>
+              <button id="load-workbench-btn" class="mini-btn">Refresh workbench</button>
+            </div>
+
+            <label>Prefix filter</label>
+            <input id="workbench-prefix" value="" placeholder="f6" />
+
+            <div id="workbench-grid"></div>
+          </div>
+        </section>
+
+        <section id="view-projects" class="view-panel">
+          <div class="glass panel">
+            <div class="panel-head">
+              <h3>Project bridge</h3>
+            </div>
+            <p class="muted-copy">
+              This surface is now pinned to the FastAPI war room shell. Old frontend
+              previews should redirect here.
+            </p>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div id="artifact-modal" class="artifact-modal hidden">
+      <div class="modal-backdrop"></div>
+      <div class="modal-card glass">
+        <div class="modal-head">
+          <div>
+            <div class="modal-title">Artifact dock</div>
+            <div id="artifact-modal-subtitle" class="modal-subtitle">Preview</div>
+          </div>
+          <button id="close-artifact-modal" class="mini-btn">Close</button>
+        </div>
+        <div id="artifact-modal-body" class="modal-body"></div>
+      </div>
+    </div>
+
+    <div id="boot-debug" class="boot-debug"></div>
+
+    <script>
+      window.addEventListener("error", function (event) {
+        const box = document.getElementById("boot-debug");
+        if (box) {
+          box.style.display = "block";
+          box.textContent = "UI boot error: " + event.message;
+        }
+      });
+
+      window.addEventListener("unhandledrejection", function (event) {
+        const box = document.getElementById("boot-debug");
+        if (box) {
+          box.style.display = "block";
+          box.textContent =
+            "UI promise error: " +
+            (event.reason?.message || String(event.reason || "Unknown"));
+        }
+      });
+    </script>
+
+    <script type="module" src="/f62_ui_app.js?v=2"></script>
+  </body>
+</html>

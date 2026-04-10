@@ -1,0 +1,14 @@
+pydantic
+pydantic-settings
+asyncpg
+httpx
+python-dotenv
+tenacity
+orjson
+structlog
+pytest
+pytest-asyncio
+anthropic
+fastapi
+uvicorn
+psycopg
