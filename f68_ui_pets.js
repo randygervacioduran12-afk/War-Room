@@ -1,8 +1,8 @@
 const DEFAULT_PETS = [
-  { key: "general_of_the_army", name: "Astra Wolf", emoji: "🐺", xp: 0, level: 1 },
-  { key: "engineer", name: "Forge Fox", emoji: "🦊", xp: 0, level: 1 },
-  { key: "researcher", name: "Nova Owl", emoji: "🦉", xp: 0, level: 1 },
-  { key: "archivist", name: "Rune Cat", emoji: "🐈", xp: 0, level: 1 },
+  { key: "general_of_the_army", name: "Claude Core", avatar: "CL", xp: 0, level: 1 },
+  { key: "general_of_engineering", name: "Engineer Wing", avatar: "EN", xp: 0, level: 1 },
+  { key: "general_of_intelligence", name: "Intel Wing", avatar: "IN", xp: 0, level: 1 },
+  { key: "general_of_the_archive", name: "Archive Wing", avatar: "AR", xp: 0, level: 1 },
 ];
 
 function loadPets() {
@@ -30,20 +30,20 @@ export function awardPetXp(generalKey, amount = 10) {
   if (!pet) return pets;
 
   pet.xp += amount;
-  const nextLevel = Math.floor(pet.xp / 100) + 1;
-  pet.level = Math.max(1, nextLevel);
-
+  pet.level = Math.max(1, Math.floor(pet.xp / 100) + 1);
   savePets(pets);
   return pets;
 }
 
 export function renderPets(el, pets) {
+  if (!el) return;
+
   el.innerHTML = pets
     .map((pet) => {
       const progress = pet.xp % 100;
       return `
         <div class="pet-card">
-          <div class="pet-avatar">${pet.emoji}</div>
+          <div class="pet-avatar">${pet.avatar}</div>
           <div>
             <div class="pet-name">${pet.name}</div>
             <div class="pet-stats">level ${pet.level} · ${pet.xp} xp</div>

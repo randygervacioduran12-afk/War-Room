@@ -111,7 +111,6 @@ function syncProjectFromActiveRun() {
 function setActiveRun(runId) {
   state.activeRunId = runId || "";
   localStorage.setItem("warroom_active_run_id", state.activeRunId);
-
   syncProjectFromActiveRun();
   renderHeaderMetrics();
   renderRuns(el["runs-list"], state.runs, state.activeRunId);
@@ -142,7 +141,7 @@ function renderHeaderMetrics() {
   }
 
   const artifactTasks = state.tasks.filter(
-    (t) => t.artifact_json || t.artifact_path || t.output_payload || t.result_json
+    (t) => t.artifact_json || t.artifact_path || t.result_json || t.output_payload
   ).length;
 
   if (el["artifact-pulse"]) {
@@ -175,19 +174,17 @@ async function refreshHealth() {
     renderHeaderMetrics();
   } catch (err) {
     console.error(err);
-    if (el["health-overview"]) el["health-overview"].textContent = "Health check failed";
-    if (el["health-meta"]) el["health-meta"].textContent = "Unable to reach /health";
   }
 }
 
 async function refreshRuns() {
   try {
     const payload = await listRuns();
-    state.runs = pickRows(payload);
+    state.runs = pickRows(payload?.runs || payload);
 
     if (!state.activeRunId && state.runs.length) {
-      const first = state.runs[0];
-      state.activeRunId = first.run_id || first.id || "";
+      const newest = state.runs[0];
+      state.activeRunId = newest.run_id || newest.id || "";
       localStorage.setItem("warroom_active_run_id", state.activeRunId);
     }
 
@@ -203,12 +200,21 @@ async function refreshRuns() {
 
 async function refreshTasks() {
   try {
+    if (!state.activeRunId) {
+      state.tasks = [];
+      renderTaskBoard(el["task-board"], state.tasks);
+      renderArtifacts(el["artifact-grid"], state.tasks);
+      renderSignalCorridor(el["signal-corridor"], state);
+      renderHeaderMetrics();
+      return;
+    }
+
     const payload = await listTasks(state.activeRunId);
     state.tasks = pickRows(payload);
     renderTaskBoard(el["task-board"], state.tasks);
     renderArtifacts(el["artifact-grid"], state.tasks);
-    renderHeaderMetrics();
     renderSignalCorridor(el["signal-corridor"], state);
+    renderHeaderMetrics();
   } catch (err) {
     console.error(err);
     el["task-board"].innerHTML = `<div class="task-card"><div class="task-title">Task load failed</div><div class="task-meta">${escapeError(err)}</div></div>`;
@@ -217,8 +223,7 @@ async function refreshTasks() {
 
 async function refreshMemory() {
   try {
-    const projectKey = state.activeProjectKey || "demo-project";
-    const payload = await listMemory(projectKey);
+    const payload = await listMemory(state.activeProjectKey || "demo-project");
     state.memory = pickRows(payload);
     renderMemory(el["memory-list"], state.memory);
   } catch (err) {
@@ -239,10 +244,6 @@ async function refreshWorkbench() {
   }
 }
 
-function refreshArtifactsOnly() {
-  renderArtifacts(el["artifact-grid"], state.tasks);
-}
-
 function renderPetsNow() {
   renderPets(el["pet-list"], getPets());
 }
@@ -259,19 +260,19 @@ function switchView(view) {
 
 async function handleCreateRun() {
   const payload = {
-    project_key: el["run-project-key"].value.trim(),
-    adapter_key: el["run-adapter-key"].value.trim(),
+    project_key: el["run-project-key"].value.trim() || "demo-project",
+    adapter_key: el["run-adapter-key"].value.trim() || "research_project",
     goal: el["run-goal"].value.trim(),
   };
 
-  state.activeProjectKey = payload.project_key || "demo-project";
+  state.activeProjectKey = payload.project_key;
   localStorage.setItem("warroom_project_key", state.activeProjectKey);
 
   try {
     const data = await createRun(payload);
     el["launch-result"].textContent = JSON.stringify(data, null, 2);
 
-    const runId = data?.run_id || data?.id || data?.run?.run_id || "";
+    const runId = data?.run_id || data?.id || "";
     if (runId) setActiveRun(runId);
 
     await refreshRuns();
@@ -281,10 +282,7 @@ async function handleCreateRun() {
   } catch (err) {
     console.error(err);
     el["launch-result"].textContent = JSON.stringify(
-      {
-        error: "Run creation failed",
-        detail: err?.data || err?.message || String(err),
-      },
+      { error: "Run creation failed", detail: escapeError(err) },
       null,
       2
     );
@@ -301,16 +299,23 @@ async function handleDispatchTask() {
     return;
   }
 
+  const operatorMessage = el["dispatch-message"].value.trim();
+
   const payload = {
     run_id: state.activeRunId,
-    general_key: el["dispatch-general-key"].value.trim(),
-    task_type: el["dispatch-task-type"].value.trim(),
-    title: el["dispatch-title"].value.trim(),
+    general_key: el["dispatch-general-key"].value.trim() || "general_of_the_army",
+    task_type: el["dispatch-task-type"].value.trim() || "plan",
+    title: el["dispatch-title"].value.trim() || "Manual mission dispatch",
     project_key: state.activeProjectKey,
-    operator_message: el["dispatch-message"].value.trim(),
-    input_payload: {},
+    operator_message: operatorMessage,
     payload_json: {
-      operator_message: el["dispatch-message"].value.trim(),
+      operator_message: operatorMessage,
+      source: "ui_dispatch",
+    },
+    input_payload: {
+      goal: operatorMessage,
+      project_key: state.activeProjectKey,
+      adapter_key: el["run-adapter-key"]?.value?.trim() || "research_project",
     },
   };
 
@@ -318,19 +323,16 @@ async function handleDispatchTask() {
     const data = await createTask(payload);
     el["dispatch-result"].textContent = JSON.stringify(data, null, 2);
 
-    await refreshTasks();
-    await refreshMemory();
-
     awardPetXp(payload.general_key, 8);
     renderPetsNow();
+
+    await refreshTasks();
+    await refreshMemory();
     switchView("signals");
   } catch (err) {
     console.error(err);
     el["dispatch-result"].textContent = JSON.stringify(
-      {
-        error: "Task dispatch failed",
-        detail: err?.data || err?.message || String(err),
-      },
+      { error: "Task dispatch failed", detail: escapeError(err) },
       null,
       2
     );
@@ -344,7 +346,6 @@ async function handleRequeue(taskId) {
     await refreshTasks();
     await refreshMemory();
   } catch (err) {
-    console.error(err);
     alert(`Requeue failed: ${escapeError(err)}`);
   }
 }
@@ -356,7 +357,6 @@ async function handleDelete(taskId) {
     await refreshTasks();
     await refreshMemory();
   } catch (err) {
-    console.error(err);
     alert(`Delete failed: ${escapeError(err)}`);
   }
 }
@@ -367,8 +367,24 @@ async function refreshAll() {
   await refreshTasks();
   await refreshMemory();
   await refreshWorkbench();
-  refreshArtifactsOnly();
   renderPetsNow();
+}
+
+function bootSanctuaryMotion() {
+  const surface = document.querySelector("[data-tilt-surface]");
+  const core = document.getElementById("claude-sanctuary");
+  if (!surface || !core) return;
+
+  surface.addEventListener("pointermove", (event) => {
+    const rect = surface.getBoundingClientRect();
+    const x = (event.clientX - rect.left) / rect.width - 0.5;
+    const y = (event.clientY - rect.top) / rect.height - 0.5;
+    core.style.transform = `rotateX(${y * -8}deg) rotateY(${x * 10}deg) translate3d(${x * 6}px, ${y * 6}px, 0)`;
+  });
+
+  surface.addEventListener("pointerleave", () => {
+    core.style.transform = "rotateX(0deg) rotateY(0deg) translate3d(0,0,0)";
+  });
 }
 
 function bindEvents() {
@@ -383,7 +399,7 @@ function bindEvents() {
   document.getElementById("load-tasks-btn")?.addEventListener("click", refreshTasks);
   document.getElementById("load-memory-btn")?.addEventListener("click", refreshMemory);
   document.getElementById("load-workbench-btn")?.addEventListener("click", refreshWorkbench);
-  document.getElementById("load-artifacts-btn")?.addEventListener("click", refreshArtifactsOnly);
+  document.getElementById("load-artifacts-btn")?.addEventListener("click", () => renderArtifacts(el["artifact-grid"], state.tasks));
 
   document.getElementById("create-run-btn")?.addEventListener("click", handleCreateRun);
   document.getElementById("dispatch-task-btn")?.addEventListener("click", handleDispatchTask);
@@ -392,9 +408,9 @@ function bindEvents() {
   document.getElementById("hero-launch-btn")?.addEventListener("click", () => switchView("operations"));
   document.getElementById("hero-dispatch-btn")?.addEventListener("click", () => switchView("operations"));
 
-  document.getElementById("auto-poll-tasks-btn")?.addEventListener("click", (e) => {
+  document.getElementById("auto-poll-tasks-btn")?.addEventListener("click", (event) => {
     state.autoPollTasks = !state.autoPollTasks;
-    e.currentTarget.textContent = `Auto poll: ${state.autoPollTasks ? "on" : "off"}`;
+    event.currentTarget.textContent = `Auto poll: ${state.autoPollTasks ? "on" : "off"}`;
   });
 
   document.getElementById("close-artifact-modal")?.addEventListener("click", () => {
@@ -462,6 +478,7 @@ async function boot() {
   cacheDom();
   bootTheme();
   bindEvents();
+  bootSanctuaryMotion();
   renderPetsNow();
   switchView("overview");
   await refreshAll();

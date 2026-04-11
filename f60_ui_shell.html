@@ -1,221 +1,262 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
+    <meta charset="utf-8" />
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+      content="width=device-width,initial-scale=1,viewport-fit=cover"
     />
-    <title>War Room // Universal Adapter</title>
-    <link rel="stylesheet" href="/f61_ui_styles.css?v=2" />
+    <title>War Room // Claude Sanctuary</title>
+    <link rel="stylesheet" href="/f61_ui_styles.css?v=7" />
   </head>
   <body>
     <div class="app-shell">
-      <aside class="left-rail glass">
-        <div class="brand-lockup">
-          <div class="brand-mark">WR</div>
+      <div class="bg-grid"></div>
+      <div class="bg-glow glow-a"></div>
+      <div class="bg-glow glow-b"></div>
+
+      <aside class="sidebar glass">
+        <div class="brand-block">
+          <div class="brand-mark">C</div>
           <div>
-            <div class="brand-title">War Room // Universal Adapter</div>
-            <div class="brand-subtitle">Neon command deck • connected multi-agent control</div>
+            <div class="brand-title">Claude Sanctuary</div>
+            <div class="brand-sub">war room command surface</div>
           </div>
         </div>
 
-        <div class="status-strip">
-          <div class="status-pill">
-            <span class="dot live"></span>
-            <span>command link active</span>
-          </div>
-          <div class="status-pill" id="active-run-id">No active run</div>
-          <div class="status-pill" id="active-run-meta">Create or select a run</div>
-        </div>
+        <div id="mini-health"></div>
 
-        <nav class="nav-stack">
+        <nav class="sidebar-nav">
           <button class="nav-btn active" data-view="overview">Overview</button>
           <button class="nav-btn" data-view="signals">Signals</button>
           <button class="nav-btn" data-view="operations">Operations</button>
-          <button class="nav-btn" data-view="notes">Notes</button>
+          <button class="nav-btn" data-view="notes">Memory</button>
           <button class="nav-btn" data-view="workbench">Workbench</button>
           <button class="nav-btn" data-view="projects">Projects</button>
         </nav>
 
-        <div class="left-actions">
-          <button id="refresh-all-btn" class="action-btn">Refresh all</button>
-          <button id="theme-cycle-btn" class="action-btn">Cycle theme</button>
-          <button id="auto-poll-tasks-btn" class="action-btn">Auto poll: on</button>
+        <div class="sidebar-footer">
+          <button id="refresh-all-btn" class="ghost-btn">Refresh all</button>
+          <button id="theme-cycle-btn" class="ghost-btn">Cycle theme</button>
+          <button id="auto-poll-tasks-btn" class="ghost-btn">Auto poll: on</button>
         </div>
       </aside>
 
       <main class="main-stage">
-        <section class="hero glass">
+        <section class="hero glass" data-tilt-surface>
           <div class="hero-copy">
-            <div class="hero-kicker">war room link active</div>
-            <h1>Universal Adapter Operations Deck</h1>
+            <div class="eyebrow">claude-first operational deck</div>
+            <h1>Command one core. Launch many outcomes.</h1>
             <p>
-              Spin up runs, dispatch specialist generals, summarize notes, monitor
-              task flow, inspect artifacts, and operate a proper multi-agent room.
+              Clean runs, readable artifacts, persistent memory, and a single
+              Claude-centered command workspace.
             </p>
 
             <div class="hero-actions">
-              <button id="hero-launch-btn" class="primary-btn">Launch a run</button>
+              <button id="hero-launch-btn" class="primary-btn">Launch run</button>
               <button id="hero-dispatch-btn" class="secondary-btn">Dispatch task</button>
+            </div>
+
+            <div class="hero-metrics">
+              <div class="metric-chip">
+                <span class="dot ok"></span>
+                <span id="health-overview">System nominal</span>
+              </div>
+              <div class="metric-chip"><span id="active-run-id">No active run</span></div>
+              <div class="metric-chip wide"><span id="active-run-meta">Create or select a run</span></div>
+              <div class="metric-chip wide"><span id="health-meta">db=? · llm=?</span></div>
+              <div class="metric-chip wide"><span id="task-pulse">0 queued · 0 claimed</span></div>
+              <div class="metric-chip wide"><span id="task-pulse-meta">0 completed · 0 failed</span></div>
+              <div class="metric-chip wide"><span id="artifact-pulse">No artifacts</span></div>
+              <div class="metric-chip wide"><span id="artifact-pulse-meta">Dock idle</span></div>
             </div>
           </div>
 
-          <div class="hero-orb-wrap">
-            <div class="hero-orb"></div>
+          <div class="hero-scene">
+            <div class="claude-sanctuary" id="claude-sanctuary">
+              <div class="sanctuary-ring ring-1"></div>
+              <div class="sanctuary-ring ring-2"></div>
+              <div class="sanctuary-ring ring-3"></div>
+              <div class="core-glow"></div>
+
+              <div class="claude-core">
+                <span class="ear left"></span>
+                <span class="ear right"></span>
+                <span class="eye left"></span>
+                <span class="eye right"></span>
+                <span class="leg l1"></span>
+                <span class="leg l2"></span>
+                <span class="leg l3"></span>
+                <span class="leg l4"></span>
+              </div>
+
+              <div class="node-chip chip-a">ARMY</div>
+              <div class="node-chip chip-b">ENG</div>
+              <div class="node-chip chip-c">INTEL</div>
+              <div class="scene-label glass">claude sanctuary active</div>
+            </div>
           </div>
         </section>
 
         <section id="view-overview" class="view-panel active-view">
-          <div class="grid two-up">
-            <div class="glass panel">
+          <div class="panel-grid panel-grid-overview">
+            <section class="panel glass">
               <div class="panel-head">
-                <h3>System link</h3>
-                <button id="health-refresh-btn" class="mini-btn">Refresh</button>
+                <h2>System link</h2>
+                <button id="health-refresh-btn" class="ghost-btn sm">Refresh</button>
               </div>
-              <div id="mini-health"></div>
-              <div class="metric-line">
-                <div id="health-overview">Booting…</div>
-                <div id="health-meta">Waiting for /health</div>
-              </div>
-              <div id="health-cards" class="card-grid"></div>
-            </div>
+              <div id="health-cards" class="card-grid two"></div>
+            </section>
 
-            <div class="glass panel">
+            <section class="panel glass">
               <div class="panel-head">
-                <h3>Signal corridor</h3>
+                <h2>Signal corridor</h2>
               </div>
-              <div id="signal-corridor"></div>
-              <div class="metric-row">
-                <div class="metric-box">
-                  <div class="metric-label">Task pulse</div>
-                  <div id="task-pulse" class="metric-value">0 queued · 0 claimed</div>
-                  <div id="task-pulse-meta" class="metric-meta">0 completed · 0 failed</div>
-                </div>
-                <div class="metric-box">
-                  <div class="metric-label">Artifact pulse</div>
-                  <div id="artifact-pulse" class="metric-value">No artifacts</div>
-                  <div id="artifact-pulse-meta" class="metric-meta">Dock idle</div>
-                </div>
-              </div>
-            </div>
-          </div>
+              <div id="signal-corridor" class="card-grid three"></div>
+            </section>
 
-          <div class="grid three-up">
-            <div class="glass panel">
+            <section class="panel glass">
               <div class="panel-head">
-                <h3>Run registry</h3>
-                <button id="load-runs-btn" class="mini-btn">Load runs</button>
+                <h2>Companion dock</h2>
               </div>
-              <div id="runs-list"></div>
-            </div>
+              <div id="pet-list" class="pet-grid"></div>
+            </section>
 
-            <div class="glass panel">
+            <section class="panel glass">
               <div class="panel-head">
-                <h3>Task board</h3>
-                <button id="load-tasks-btn" class="mini-btn">Load tasks</button>
+                <h2>Artifact dock</h2>
+                <button id="load-artifacts-btn" class="ghost-btn sm">Refresh dock</button>
               </div>
-              <div id="task-board"></div>
-            </div>
-
-            <div class="glass panel">
-              <div class="panel-head">
-                <h3>Pet dock</h3>
-              </div>
-              <div id="pet-list"></div>
-            </div>
+              <div id="artifact-grid" class="artifact-grid"></div>
+            </section>
           </div>
         </section>
 
         <section id="view-signals" class="view-panel">
-          <div class="glass panel">
-            <div class="panel-head">
-              <h3>Artifacts</h3>
-              <button id="load-artifacts-btn" class="mini-btn">Refresh dock</button>
-            </div>
-            <div id="artifact-grid"></div>
+          <div class="panel-grid panel-grid-signals">
+            <section class="panel glass">
+              <div class="panel-head">
+                <h2>Run registry</h2>
+                <button id="load-runs-btn" class="ghost-btn sm">Load runs</button>
+              </div>
+              <div id="runs-list" class="stack-list"></div>
+            </section>
+
+            <section class="panel glass">
+              <div class="panel-head">
+                <h2>Task board</h2>
+                <button id="load-tasks-btn" class="ghost-btn sm">Load tasks</button>
+              </div>
+              <div id="task-board" class="task-lanes"></div>
+            </section>
           </div>
         </section>
 
         <section id="view-operations" class="view-panel">
-          <div class="grid two-up">
-            <div class="glass panel">
+          <div class="panel-grid panel-grid-ops">
+            <section class="panel glass">
               <div class="panel-head">
-                <h3>Launch run</h3>
-                <button id="open-launch-btn" class="mini-btn">Focus</button>
+                <h2>Launch run</h2>
+                <button id="open-launch-btn" class="ghost-btn sm">Focus</button>
               </div>
 
-              <label>Project key</label>
-              <input id="run-project-key" value="demo-project" />
+              <div class="form-grid">
+                <label class="field">
+                  <span>Project key</span>
+                  <input id="run-project-key" value="demo-project" />
+                </label>
 
-              <label>Adapter key</label>
-              <input id="run-adapter-key" value="research_project" />
+                <label class="field">
+                  <span>Adapter key</span>
+                  <input id="run-adapter-key" value="research_project" />
+                </label>
 
-              <label>Goal</label>
-              <textarea id="run-goal">Design an overnight AI research pipeline</textarea>
+                <label class="field field-wide">
+                  <span>Goal</span>
+                  <textarea id="run-goal">Design an overnight AI research pipeline</textarea>
+                </label>
+              </div>
 
               <button id="create-run-btn" class="primary-btn">Launch run</button>
-
               <pre id="launch-result" class="result-box"></pre>
-            </div>
+            </section>
 
-            <div class="glass panel">
+            <section class="panel glass">
               <div class="panel-head">
-                <h3>Dispatch mission</h3>
+                <h2>Dispatch mission</h2>
               </div>
 
-              <label>General key</label>
-              <input id="dispatch-general-key" value="general_of_the_army" />
+              <div class="form-grid">
+                <label class="field">
+                  <span>General key</span>
+                  <input id="dispatch-general-key" value="general_of_the_army" />
+                </label>
 
-              <label>Task type</label>
-              <input id="dispatch-task-type" value="plan" />
+                <label class="field">
+                  <span>Task type</span>
+                  <input id="dispatch-task-type" value="plan" />
+                </label>
 
-              <label>Title</label>
-              <input id="dispatch-title" value="Manual mission dispatch" />
+                <label class="field">
+                  <span>Title</span>
+                  <input id="dispatch-title" value="Manual mission dispatch" />
+                </label>
 
-              <label>Operator message</label>
-              <textarea id="dispatch-message">Summarize current state and recommend the next move.</textarea>
+                <label class="field field-wide">
+                  <span>Operator message</span>
+                  <textarea id="dispatch-message">Summarize current state and recommend the next move.</textarea>
+                </label>
+              </div>
 
               <button id="dispatch-task-btn" class="primary-btn">Dispatch mission</button>
-
               <pre id="dispatch-result" class="result-box"></pre>
-            </div>
+            </section>
           </div>
         </section>
 
         <section id="view-notes" class="view-panel">
-          <div class="glass panel">
-            <div class="panel-head">
-              <h3>Memory feed</h3>
-              <button id="load-memory-btn" class="mini-btn">Load memory</button>
-            </div>
-            <div id="memory-list"></div>
+          <div class="panel-grid panel-grid-notes">
+            <section class="panel glass">
+              <div class="panel-head">
+                <h2>Memory feed</h2>
+                <button id="load-memory-btn" class="ghost-btn sm">Load memory</button>
+              </div>
+              <div id="memory-list" class="stack-list"></div>
+            </section>
           </div>
         </section>
 
         <section id="view-workbench" class="view-panel">
-          <div class="glass panel">
-            <div class="panel-head">
-              <h3>Workbench</h3>
-              <button id="load-workbench-btn" class="mini-btn">Refresh workbench</button>
-            </div>
+          <div class="panel-grid panel-grid-workbench">
+            <section class="panel glass">
+              <div class="panel-head">
+                <h2>Workbench</h2>
+                <button id="load-workbench-btn" class="ghost-btn sm">Refresh workbench</button>
+              </div>
 
-            <label>Prefix filter</label>
-            <input id="workbench-prefix" value="" placeholder="f6" />
+              <div class="form-grid">
+                <label class="field field-wide">
+                  <span>Prefix filter</span>
+                  <input id="workbench-prefix" value="" placeholder="f6" />
+                </label>
+              </div>
 
-            <div id="workbench-grid"></div>
+              <div id="workbench-grid" class="artifact-grid"></div>
+            </section>
           </div>
         </section>
 
         <section id="view-projects" class="view-panel">
-          <div class="glass panel">
-            <div class="panel-head">
-              <h3>Project bridge</h3>
-            </div>
-            <p class="muted-copy">
-              This surface is now pinned to the FastAPI war room shell. Old frontend
-              previews should redirect here.
-            </p>
+          <div class="panel-grid">
+            <section class="panel glass">
+              <div class="panel-head">
+                <h2>Project bridge</h2>
+              </div>
+              <p class="muted-copy">
+                This shell is now the live control surface. The React placeholder
+                can stay parked until the future canvas rebuild.
+              </p>
+            </section>
           </div>
         </section>
       </main>
@@ -229,7 +270,7 @@
             <div class="modal-title">Artifact dock</div>
             <div id="artifact-modal-subtitle" class="modal-subtitle">Preview</div>
           </div>
-          <button id="close-artifact-modal" class="mini-btn">Close</button>
+          <button id="close-artifact-modal" class="ghost-btn sm">Close</button>
         </div>
         <div id="artifact-modal-body" class="modal-body"></div>
       </div>
@@ -240,23 +281,21 @@
     <script>
       window.addEventListener("error", function (event) {
         const box = document.getElementById("boot-debug");
-        if (box) {
-          box.style.display = "block";
-          box.textContent = "UI boot error: " + event.message;
-        }
+        if (!box) return;
+        box.style.display = "block";
+        box.textContent = "UI boot error: " + event.message;
       });
 
       window.addEventListener("unhandledrejection", function (event) {
         const box = document.getElementById("boot-debug");
-        if (box) {
-          box.style.display = "block";
-          box.textContent =
-            "UI promise error: " +
-            (event.reason?.message || String(event.reason || "Unknown"));
-        }
+        if (!box) return;
+        box.style.display = "block";
+        box.textContent =
+          "UI promise error: " +
+          (event.reason?.message || String(event.reason || "Unknown"));
       });
     </script>
 
-    <script type="module" src="/f62_ui_app.js?v=2"></script>
+    <script type="module" src="/f62_ui_app.js?v=7"></script>
   </body>
 </html>

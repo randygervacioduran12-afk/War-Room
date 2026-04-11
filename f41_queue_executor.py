@@ -28,11 +28,7 @@ except Exception:
 
 POLL_SECONDS = int(os.getenv("EXECUTOR_POLL_SECONDS", "2"))
 LEASE_SECONDS = int(os.getenv("EXECUTOR_LEASE_SECONDS", "180"))
-EXECUTOR_OWNER = os.getenv(
-    "EXECUTOR_OWNER",
-    f"{socket.gethostname()}:{os.getpid()}",
-)
-
+EXECUTOR_OWNER = os.getenv("EXECUTOR_OWNER", f"{socket.gethostname()}:{os.getpid()}")
 ARTIFACTS_DIR = Path(os.getenv("ARTIFACTS_DIR", "artifacts")).resolve()
 
 logger = get_logger("queue.executor")
@@ -155,8 +151,6 @@ def _artifact_extension(kind: str) -> str:
     lowered = (kind or "").lower()
     if lowered in {"json", "json_blob"}:
         return ".json"
-    if lowered in {"code", "code_patch", "patch"}:
-        return ".md"
     return ".md"
 
 
@@ -173,7 +167,7 @@ def _artifact_body_and_kind(task: dict[str, Any], result: dict[str, Any]) -> tup
     )
 
     if isinstance(raw_artifact, dict):
-        body = raw_artifact.get("content") or raw_artifact.get("body")
+        body = raw_artifact.get("body") or raw_artifact.get("content")
         if body is None:
             body = json.dumps(raw_artifact, ensure_ascii=False, indent=2)
     elif isinstance(raw_artifact, str):
@@ -197,11 +191,10 @@ def _write_artifact_file(task: dict[str, Any], title: str, kind: str, body: str)
     ext = _artifact_extension(kind)
     filename = f"{task_id}-{_slug(title)}{ext}"
     file_path = folder / filename
-
     file_path.write_text(body, encoding="utf-8")
 
-    relative_path = str(file_path.relative_to(Path.cwd())).replace("\\", "/")
-    href = f"/assets/{relative_path}"
+    relative_path = str(file_path.relative_to(ARTIFACTS_DIR)).replace("\\", "/")
+    href = f"/artifact-files/{relative_path}"
     return relative_path, href
 
 
@@ -231,8 +224,6 @@ def _persist_memory(
     body: str,
     source_task_id: str | None = None,
 ) -> None:
-    project_key = task.get("project_key") or "demo-project"
-    run_id = task.get("run_id")
     memory_id = f"mem_{uuid4().hex[:16]}"
 
     execute(
@@ -251,8 +242,8 @@ def _persist_memory(
         """,
         [
             memory_id,
-            project_key,
-            run_id,
+            task.get("project_key") or "demo-project",
+            task.get("run_id"),
             memory_type,
             title,
             body,
@@ -265,25 +256,20 @@ def _persist_memory(
 def _mark_completed(task: dict[str, Any], result: dict[str, Any]) -> None:
     artifact_payload = _build_artifact_payload(task, result)
 
-    result_json = _json_text(result, {})
-    artifact_json = _json_text(artifact_payload, {})
-    output_payload = _json_text(result, {})
-    error_payload = "{}"
-
     update_fields(
         "tasks",
         {
             "status": "completed",
-            "result_json": result_json,
-            "artifact_json": artifact_json,
+            "result_json": _json_text(result, {}),
+            "artifact_json": _json_text(artifact_payload, {}),
             "artifact_path": artifact_payload.get("path"),
             "error_text": None,
             "updated_at": utc_now(),
             "lease_owner": None,
             "lease_expires_at": None,
             "assigned_agent": task.get("general_key"),
-            "output_payload": output_payload,
-            "error_payload": error_payload,
+            "output_payload": _json_text(result, {}),
+            "error_payload": "{}",
         },
         "task_id = ?",
         [task["task_id"]],
@@ -335,6 +321,7 @@ async def _run_task(task: dict[str, Any]) -> dict[str, Any]:
 async def run_executor_loop() -> None:
     setup_logging()
     init_db()
+    ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
     logger.info("executor loop started owner=%s", EXECUTOR_OWNER)
 
     while True:
@@ -345,13 +332,6 @@ async def run_executor_loop() -> None:
             continue
 
         task = _normalize_task(task)
-        logger.info(
-            "claimed task task_id=%s general=%s type=%s title=%s",
-            task.get("task_id"),
-            task.get("general_key"),
-            task.get("task_type"),
-            task.get("title"),
-        )
 
         try:
             result = await _run_task(task)

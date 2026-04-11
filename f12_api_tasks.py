@@ -19,6 +19,33 @@ def ensure_tasks_ready() -> None:
     init_db()
 
 
+def _safe_parse_json(value: Any) -> Any:
+    if value is None:
+        return None
+    if isinstance(value, (dict, list)):
+        return value
+    if not isinstance(value, str):
+        return value
+    text = value.strip()
+    if not text:
+        return None
+    try:
+        return json.loads(text)
+    except Exception:
+        return value
+
+
+def _serialize(value: Any, fallback: Any) -> str:
+    if value is None:
+        value = fallback
+    if isinstance(value, str):
+        stripped = value.strip()
+        if stripped:
+            return stripped
+        return json.dumps(fallback, ensure_ascii=False)
+    return json.dumps(value, ensure_ascii=False)
+
+
 class TaskCreate(BaseModel):
     run_id: Optional[str] = None
     project_key: str = "demo-project"
@@ -27,6 +54,21 @@ class TaskCreate(BaseModel):
     title: str = "Manual mission dispatch"
     operator_message: str = ""
     payload: dict[str, Any] = Field(default_factory=dict)
+    payload_json: dict[str, Any] | None = None
+    input_payload: dict[str, Any] | None = None
+
+
+def _normalize_task_row(row: dict[str, Any]) -> dict[str, Any]:
+    for key in (
+        "payload_json",
+        "result_json",
+        "artifact_json",
+        "input_payload",
+        "output_payload",
+        "error_payload",
+    ):
+        row[key] = _safe_parse_json(row.get(key))
+    return row
 
 
 @router.get("/tasks")
@@ -59,9 +101,13 @@ def list_tasks(
             project_key,
             general_key,
             task_type,
+            assigned_agent,
             title,
             operator_message,
             payload_json,
+            input_payload,
+            output_payload,
+            error_payload,
             status,
             result_json,
             error_text,
@@ -70,7 +116,9 @@ def list_tasks(
             created_at,
             updated_at,
             lease_owner,
-            lease_expires_at
+            lease_expires_at,
+            attempt_count,
+            priority
         FROM tasks
     """
 
@@ -79,16 +127,7 @@ def list_tasks(
 
     sql += " ORDER BY created_at DESC"
 
-    rows = fetch_all(sql, params)
-
-    for row in rows:
-        for key in ("payload_json", "result_json", "artifact_json"):
-            if row.get(key):
-                try:
-                    row[key] = json.loads(row[key])
-                except Exception:
-                    pass
-
+    rows = [_normalize_task_row(row) for row in fetch_all(sql, params)]
     return {"items": rows}
 
 
@@ -104,9 +143,13 @@ def get_task(task_id: str):
             project_key,
             general_key,
             task_type,
+            assigned_agent,
             title,
             operator_message,
             payload_json,
+            input_payload,
+            output_payload,
+            error_payload,
             status,
             result_json,
             error_text,
@@ -115,7 +158,9 @@ def get_task(task_id: str):
             created_at,
             updated_at,
             lease_owner,
-            lease_expires_at
+            lease_expires_at,
+            attempt_count,
+            priority
         FROM tasks
         WHERE task_id = ?
         """,
@@ -125,26 +170,30 @@ def get_task(task_id: str):
     if not row:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    for key in ("payload_json", "result_json", "artifact_json"):
-        if row.get(key):
-            try:
-                row[key] = json.loads(row[key])
-            except Exception:
-                pass
-
-    return row
+    return _normalize_task_row(row)
 
 
 @router.post("/tasks")
 def create_task(body: TaskCreate):
     ensure_tasks_ready()
 
+    if not body.run_id:
+        raise HTTPException(status_code=400, detail="run_id is required")
+
     task_id = f"task_{uuid.uuid4().hex[:16]}"
     now = utc_now()
 
-    payload = {
-        "operator_message": body.operator_message,
+    merged_payload = {
+        **(body.payload_json or {}),
         **(body.payload or {}),
+    }
+
+    if body.operator_message and "operator_message" not in merged_payload:
+        merged_payload["operator_message"] = body.operator_message
+
+    input_payload = {
+        **(body.input_payload or {}),
+        "project_key": body.project_key,
     }
 
     execute(
@@ -158,6 +207,9 @@ def create_task(body: TaskCreate):
             title,
             operator_message,
             payload_json,
+            input_payload,
+            output_payload,
+            error_payload,
             status,
             result_json,
             error_text,
@@ -168,7 +220,7 @@ def create_task(body: TaskCreate):
             lease_owner,
             lease_expires_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         [
             task_id,
@@ -178,7 +230,10 @@ def create_task(body: TaskCreate):
             body.task_type,
             body.title,
             body.operator_message,
-            json.dumps(payload),
+            _serialize(merged_payload, {}),
+            _serialize(input_payload, {}),
+            "{}",
+            "{}",
             "queued",
             None,
             None,
@@ -192,7 +247,7 @@ def create_task(body: TaskCreate):
     )
 
     row = fetch_one("SELECT * FROM tasks WHERE task_id = ?", [task_id])
-    return {"ok": True, "task": row}
+    return {"ok": True, "task": _normalize_task_row(row)}
 
 
 @router.post("/admin/tasks")
@@ -217,6 +272,8 @@ def requeue_task(task_id: str):
             result_json = NULL,
             artifact_path = NULL,
             artifact_json = NULL,
+            output_payload = '{}',
+            error_payload = '{}',
             updated_at = ?,
             lease_owner = NULL,
             lease_expires_at = NULL
@@ -226,7 +283,7 @@ def requeue_task(task_id: str):
     )
 
     row = fetch_one("SELECT * FROM tasks WHERE task_id = ?", [task_id])
-    return {"ok": True, "task": row}
+    return {"ok": True, "task": _normalize_task_row(row)}
 
 
 @router.delete("/admin/tasks/{task_id}")
