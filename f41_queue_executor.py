@@ -1,11 +1,14 @@
 import asyncio
 import json
 import os
+import re
 import socket
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
-from f22_core_db import fetch_one, execute, init_db, update_fields
+from f22_core_db import execute, fetch_one, init_db, update_fields
 from f35_general_router import run_general_task
 
 try:
@@ -29,6 +32,8 @@ EXECUTOR_OWNER = os.getenv(
     "EXECUTOR_OWNER",
     f"{socket.gethostname()}:{os.getpid()}",
 )
+
+ARTIFACTS_DIR = Path(os.getenv("ARTIFACTS_DIR", "artifacts")).resolve()
 
 logger = get_logger("queue.executor")
 
@@ -66,6 +71,13 @@ def _json_text(value: Any, fallback: Any = None) -> str:
             return text
         return json.dumps(fallback if fallback is not None else {}, ensure_ascii=False)
     return json.dumps(value, ensure_ascii=False)
+
+
+def _slug(value: str, fallback: str = "artifact") -> str:
+    text = (value or "").strip().lower()
+    text = re.sub(r"[^a-z0-9]+", "-", text)
+    text = text.strip("-")
+    return text or fallback
 
 
 def _claim_next_task() -> dict[str, Any] | None:
@@ -139,11 +151,122 @@ def _normalize_task(task: dict[str, Any]) -> dict[str, Any]:
     return normalized
 
 
+def _artifact_extension(kind: str) -> str:
+    lowered = (kind or "").lower()
+    if lowered in {"json", "json_blob"}:
+        return ".json"
+    if lowered in {"code", "code_patch", "patch"}:
+        return ".md"
+    return ".md"
+
+
+def _artifact_body_and_kind(task: dict[str, Any], result: dict[str, Any]) -> tuple[str, str, str]:
+    raw_artifact = result.get("artifact")
+    title = (
+        (raw_artifact.get("title") if isinstance(raw_artifact, dict) else None)
+        or task.get("title")
+        or f"{task.get('general_key') or 'agent'} output"
+    )
+    kind = (
+        (raw_artifact.get("type") if isinstance(raw_artifact, dict) else None)
+        or "markdown"
+    )
+
+    if isinstance(raw_artifact, dict):
+        body = raw_artifact.get("content") or raw_artifact.get("body")
+        if body is None:
+            body = json.dumps(raw_artifact, ensure_ascii=False, indent=2)
+    elif isinstance(raw_artifact, str):
+        body = raw_artifact
+    else:
+        body = result.get("raw_text") or result.get("summary")
+        if not body:
+            body = json.dumps(result, ensure_ascii=False, indent=2)
+
+    return str(title), str(kind), str(body)
+
+
+def _write_artifact_file(task: dict[str, Any], title: str, kind: str, body: str) -> tuple[str, str]:
+    project_key = task.get("project_key") or "default-project"
+    run_id = task.get("run_id") or "no-run"
+    task_id = task.get("task_id") or f"task_{uuid4().hex[:8]}"
+
+    folder = ARTIFACTS_DIR / _slug(project_key, "project") / _slug(run_id, "run")
+    folder.mkdir(parents=True, exist_ok=True)
+
+    ext = _artifact_extension(kind)
+    filename = f"{task_id}-{_slug(title)}{ext}"
+    file_path = folder / filename
+
+    file_path.write_text(body, encoding="utf-8")
+
+    relative_path = str(file_path.relative_to(Path.cwd())).replace("\\", "/")
+    href = f"/assets/{relative_path}"
+    return relative_path, href
+
+
+def _build_artifact_payload(task: dict[str, Any], result: dict[str, Any]) -> dict[str, Any]:
+    title, kind, body = _artifact_body_and_kind(task, result)
+    relative_path, href = _write_artifact_file(task, title, kind, body)
+
+    return {
+        "type": kind,
+        "title": title,
+        "body": body,
+        "path": relative_path,
+        "href": href,
+        "task_id": task.get("task_id"),
+        "run_id": task.get("run_id"),
+        "project_key": task.get("project_key"),
+        "general_key": task.get("general_key"),
+        "created_at": utc_now(),
+    }
+
+
+def _persist_memory(
+    *,
+    task: dict[str, Any],
+    memory_type: str,
+    title: str,
+    body: str,
+    source_task_id: str | None = None,
+) -> None:
+    project_key = task.get("project_key") or "demo-project"
+    run_id = task.get("run_id")
+    memory_id = f"mem_{uuid4().hex[:16]}"
+
+    execute(
+        """
+        INSERT INTO memory_items (
+            memory_id,
+            project_key,
+            run_id,
+            memory_type,
+            title,
+            body,
+            source_task_id,
+            created_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        [
+            memory_id,
+            project_key,
+            run_id,
+            memory_type,
+            title,
+            body,
+            source_task_id,
+            utc_now(),
+        ],
+    )
+
+
 def _mark_completed(task: dict[str, Any], result: dict[str, Any]) -> None:
-    artifact = result.get("artifact") or {}
+    artifact_payload = _build_artifact_payload(task, result)
 
     result_json = _json_text(result, {})
-    artifact_json = _json_text(artifact, {})
+    artifact_json = _json_text(artifact_payload, {})
     output_payload = _json_text(result, {})
     error_payload = "{}"
 
@@ -153,7 +276,7 @@ def _mark_completed(task: dict[str, Any], result: dict[str, Any]) -> None:
             "status": "completed",
             "result_json": result_json,
             "artifact_json": artifact_json,
-            "artifact_path": artifact.get("path") if isinstance(artifact, dict) else None,
+            "artifact_path": artifact_payload.get("path"),
             "error_text": None,
             "updated_at": utc_now(),
             "lease_owner": None,
@@ -164,6 +287,14 @@ def _mark_completed(task: dict[str, Any], result: dict[str, Any]) -> None:
         },
         "task_id = ?",
         [task["task_id"]],
+    )
+
+    _persist_memory(
+        task=task,
+        memory_type="summary",
+        title=artifact_payload.get("title") or task.get("title") or "Completed task",
+        body=artifact_payload.get("body") or result.get("summary") or "Task completed.",
+        source_task_id=task.get("task_id"),
     )
 
 
@@ -186,6 +317,14 @@ def _mark_failed(task: dict[str, Any], exc: Exception) -> None:
         },
         "task_id = ?",
         [task["task_id"]],
+    )
+
+    _persist_memory(
+        task=task,
+        memory_type="failure",
+        title=f"Failure: {task.get('title') or task.get('task_id') or 'task'}",
+        body=str(exc),
+        source_task_id=task.get("task_id"),
     )
 
 

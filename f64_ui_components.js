@@ -6,6 +6,98 @@ function esc(value) {
     .replaceAll('"', "&quot;");
 }
 
+function parseMaybeJson(value) {
+  if (value == null) return null;
+  if (typeof value === "object") return value;
+  if (typeof value !== "string") return value;
+
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  if (
+    (trimmed.startsWith("{") && trimmed.endsWith("}")) ||
+    (trimmed.startsWith("[") && trimmed.endsWith("]"))
+  ) {
+    try {
+      return JSON.parse(trimmed);
+    } catch {
+      return value;
+    }
+  }
+
+  return value;
+}
+
+function previewText(value, max = 240) {
+  if (value == null) return "";
+  let text = typeof value === "string" ? value : JSON.stringify(value, null, 2);
+  text = text.replace(/```[\s\S]*?```/g, "[code block]");
+  text = text.replace(/\s+/g, " ").trim();
+  if (text.length <= max) return text;
+  return `${text.slice(0, max - 1)}…`;
+}
+
+function formatDate(value) {
+  if (!value) return "";
+  try {
+    return new Date(value).toLocaleString();
+  } catch {
+    return String(value);
+  }
+}
+
+function normalizeArtifact(task) {
+  const directArtifact = parseMaybeJson(task?.artifact_json);
+  const resultJson = parseMaybeJson(task?.result_json);
+  const outputPayload = parseMaybeJson(task?.output_payload);
+
+  const nestedArtifact =
+    (resultJson && typeof resultJson === "object" && resultJson.artifact) ||
+    (outputPayload && typeof outputPayload === "object" && outputPayload.artifact) ||
+    null;
+
+  const artifact = directArtifact || nestedArtifact;
+
+  if (artifact && typeof artifact === "object") {
+    return {
+      type: artifact.type || "markdown",
+      title: artifact.title || task.title || "Artifact",
+      body:
+        artifact.body ||
+        artifact.content ||
+        artifact.text ||
+        resultJson?.raw_text ||
+        resultJson?.summary ||
+        "",
+      href: artifact.href || "",
+      path: artifact.path || task.artifact_path || "",
+      general_key: artifact.general_key || task.general_key || "",
+      task_id: artifact.task_id || task.task_id || "",
+      created_at: artifact.created_at || task.updated_at || task.created_at || "",
+    };
+  }
+
+  const fallbackBody =
+    resultJson?.raw_text ||
+    resultJson?.summary ||
+    outputPayload?.raw_text ||
+    task?.artifact_path ||
+    "";
+
+  if (!fallbackBody) return null;
+
+  return {
+    type: "markdown",
+    title: task.title || "Artifact",
+    body: String(fallbackBody),
+    href: "",
+    path: task.artifact_path || "",
+    general_key: task.general_key || "",
+    task_id: task.task_id || "",
+    created_at: task.updated_at || task.created_at || "",
+  };
+}
+
 export function pickRows(payload) {
   if (Array.isArray(payload)) return payload;
   if (Array.isArray(payload?.rows)) return payload.rows;
@@ -18,9 +110,9 @@ export function renderMiniHealth(target, health) {
   if (!target) return;
   const ok = !!health?.ok;
   target.innerHTML = `
-    <div class="metric-chip wide">
+    <div class="metric-chip">
       <span class="dot ${ok ? "ok" : ""}"></span>
-      <span>${ok ? "command link active" : "attention needed"}</span>
+      <span>${esc(ok ? "command link active" : "attention needed")}</span>
     </div>
   `;
 }
@@ -28,25 +120,20 @@ export function renderMiniHealth(target, health) {
 export function renderHealthCards(target, health) {
   if (!target) return;
 
-  const rows = [
-    ["App", health?.app_env || "dev", !!health?.ok],
-    ["DB", health?.db_ok ? "connected" : "down", !!health?.db_ok],
-    ["LLM", health?.llm_ok ? "ready" : "down", !!health?.llm_ok],
-    ["App runtime", `env=${health?.app_env || "dev"}`, !!health?.ok],
-    ["Database", health?.db_ok ? "storage online" : "storage down", !!health?.db_ok],
-    ["LLM path", health?.llm_ok ? "generation path ready" : "generation path down", !!health?.llm_ok],
-    ["Timestamp", health?.timestamp || "n/a", false],
+  const cards = [
+    ["API", health?.ok ? "online" : "degraded", health?.timestamp || ""],
+    ["Database", health?.db_ok ? "up" : "down", health?.db_error || "SQLite ready"],
+    ["LLM", health?.llm_ok ? "up" : "down", health?.provider || "No provider"],
+    ["Environment", health?.app_env || "dev", "current runtime"],
   ];
 
-  target.innerHTML = rows
+  target.innerHTML = cards
     .map(
-      ([title, meta, ok]) => `
+      ([title, value, meta]) => `
       <div class="health-card">
         <div class="card-title">${esc(title)}</div>
+        <div style="font-size:28px;font-weight:900;line-height:1.1;margin:10px 0 6px;">${esc(value)}</div>
         <div class="card-meta">${esc(meta)}</div>
-        <div class="task-tags">
-          <span class="pill">${ok ? "● live" : "• info"}</span>
-        </div>
       </div>
     `
     )
@@ -67,7 +154,11 @@ export function renderSignalCorridor(target, state) {
     ["Claimed", claimed, "currently owned"],
     ["Completed", completed, "delivered outcomes"],
     ["Failed", failed, "needs operator review"],
-    ["Artifacts", state.tasks.filter((t) => t.artifact_json || t.artifact_path || t.output_payload || t.result_json).length, "dock-ready outputs"],
+    [
+      "Artifacts",
+      state.tasks.filter((t) => normalizeArtifact(t)).length,
+      "dock-ready outputs",
+    ],
   ];
 
   target.innerHTML = cards
@@ -95,6 +186,7 @@ export function renderRuns(target, runs, activeRunId) {
     .map((run) => {
       const runId = run.run_id || run.id || "";
       const isActive = runId === activeRunId;
+
       return `
         <div class="run-card">
           <div class="card-title">${esc(run.goal || run.title || runId || "Run")}</div>
@@ -124,12 +216,24 @@ export function renderMemory(target, rows) {
   }
 
   target.innerHTML = rows
-    .map((row) => `
-      <div class="memory-card">
-        <div class="card-title">${esc(row.title || row.memory_id || "Memory entry")}</div>
-        <div class="card-meta">${esc(row.summary || row.content || row.body || "")}</div>
-      </div>
-    `)
+    .map((row) => {
+      const body = row.body || row.content || "";
+      const metaBits = [
+        row.memory_type || "note",
+        row.source_task_id ? `task=${row.source_task_id}` : "",
+        row.created_at ? formatDate(row.created_at) : "",
+      ].filter(Boolean);
+
+      return `
+        <div class="memory-card">
+          <div class="card-title">${esc(row.title || row.memory_id || "Memory entry")}</div>
+          <div class="task-tags">
+            ${metaBits.map((bit) => `<span class="pill">${esc(bit)}</span>`).join("")}
+          </div>
+          <div class="card-meta" style="margin-top:12px;">${esc(previewText(body, 420))}</div>
+        </div>
+      `;
+    })
     .join("");
 }
 
@@ -151,21 +255,12 @@ export function renderWorkbench(target, files) {
     .join("");
 }
 
-function readArtifact(task) {
-  return (
-    task.artifact_json ||
-    task.result_json ||
-    task.output_payload ||
-    task.payload_json ||
-    task.artifact_path ||
-    ""
-  );
-}
-
 export function renderArtifacts(target, tasks) {
   if (!target) return;
 
-  const rows = tasks.filter((t) => t.artifact_json || t.artifact_path || t.output_payload || t.result_json);
+  const rows = tasks
+    .map((task) => ({ task, artifact: normalizeArtifact(task) }))
+    .filter((entry) => entry.artifact);
 
   if (!rows.length) {
     target.innerHTML = `<div class="artifact-card"><div class="card-title">No artifacts</div><div class="card-meta">Run and complete tasks to populate the dock.</div></div>`;
@@ -173,25 +268,33 @@ export function renderArtifacts(target, tasks) {
   }
 
   target.innerHTML = rows
-    .map((task) => {
-      const payload = {
+    .map(({ task, artifact }) => {
+      const modalPayload = {
         task_id: task.task_id,
-        title: task.title,
-        general_key: task.general_key,
+        title: artifact.title,
+        general_key: artifact.general_key || task.general_key,
         status: task.status,
-        artifact: readArtifact(task),
+        artifact,
       };
 
       return `
         <div class="artifact-card">
-          <div class="card-title">${esc(task.title || "Artifact")}</div>
+          <div class="card-title">${esc(artifact.title || task.title || "Artifact")}</div>
           <div class="card-meta">
-            task_id=${esc(task.task_id || "")}<br/>
-            general=${esc(task.general_key || "")}<br/>
-            status=${esc(task.status || "")}
+            ${esc(previewText(artifact.body, 220))}
+          </div>
+          <div class="task-tags">
+            <span class="pill">${esc(artifact.type || "markdown")}</span>
+            <span class="pill">${esc(task.status || "completed")}</span>
+            ${artifact.path ? `<span class="pill">${esc(artifact.path)}</span>` : ""}
           </div>
           <div class="task-actions">
-            <button class="ghost-btn sm" data-artifact-open='${esc(JSON.stringify(payload))}'>Open</button>
+            <button class="ghost-btn sm" data-artifact-open='${esc(JSON.stringify(modalPayload))}'>Open</button>
+            ${
+              artifact.href
+                ? `<a class="ghost-btn sm" href="${esc(artifact.href)}" target="_blank" rel="noreferrer">Open file</a>`
+                : ""
+            }
           </div>
         </div>
       `;
@@ -200,6 +303,8 @@ export function renderArtifacts(target, tasks) {
 }
 
 function renderTaskCard(task) {
+  const artifact = normalizeArtifact(task);
+
   return `
     <div class="task-card">
       <div class="task-title">${esc(task.title || "Untitled task")}</div>
@@ -209,6 +314,11 @@ function renderTaskCard(task) {
         type=${esc(task.task_type || "")}<br/>
         priority=${esc(task.priority ?? 0)}
       </div>
+      ${
+        artifact?.body
+          ? `<div class="card-meta" style="margin-top:12px;">${esc(previewText(artifact.body, 220))}</div>`
+          : ""
+      }
       <div class="task-tags">
         <span class="pill">${esc(task.status || "unknown")}</span>
         <span class="pill">${esc(task.project_key || "no-project")}</span>
@@ -237,8 +347,20 @@ export function renderTaskBoard(target, tasks) {
       return `
         <section class="lane">
           <div class="lane-title">${esc(label)} · ${laneTasks.length}</div>
-          <div class="lane-meta">${status === "queued" ? "Awaiting execution" : status === "claimed" ? "Currently active" : status === "completed" ? "Delivered outcomes" : "Needs review"}</div>
-          ${laneTasks.length ? laneTasks.map(renderTaskCard).join("") : `<div class="task-card"><div class="task-meta">No tasks in this lane.</div></div>`}
+          <div class="lane-meta">${
+            status === "queued"
+              ? "Awaiting execution"
+              : status === "claimed"
+              ? "Currently active"
+              : status === "completed"
+              ? "Delivered outcomes"
+              : "Needs review"
+          }</div>
+          ${
+            laneTasks.length
+              ? laneTasks.map(renderTaskCard).join("")
+              : `<div class="task-card"><div class="task-meta">No tasks in this lane.</div></div>`
+          }
         </section>
       `;
     })

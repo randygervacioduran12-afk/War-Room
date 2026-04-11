@@ -2,7 +2,8 @@ function esc(value) {
   return String(value ?? "")
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;");
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
 }
 
 function looksLikeJson(value) {
@@ -19,7 +20,11 @@ function renderJsonBlock(obj) {
       ${entries.map(([key, val]) => `
         <div class="kv-row">
           <div class="kv-key">${esc(key)}</div>
-          <div>${typeof val === "object" && val !== null ? `<pre>${esc(JSON.stringify(val, null, 2))}</pre>` : esc(val)}</div>
+          <div>${
+            typeof val === "object" && val !== null
+              ? `<pre>${esc(JSON.stringify(val, null, 2))}</pre>`
+              : esc(val)
+          }</div>
         </div>
       `).join("")}
     </div>
@@ -27,36 +32,148 @@ function renderJsonBlock(obj) {
 }
 
 function renderMarkdownish(text) {
-  const html = esc(text)
-    .replace(/^### (.*)$/gm, "<h3>$1</h3>")
-    .replace(/^## (.*)$/gm, "<h2>$1</h2>")
-    .replace(/^# (.*)$/gm, "<h1>$1</h1>")
-    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-    .replace(/\n/g, "<br/>");
+  const source = String(text || "");
 
-  return `<div class="markdown-view">${html}</div>`;
+  const fenceMatches = [];
+  const withoutFences = source.replace(/```([a-zA-Z0-9_-]+)?\n([\s\S]*?)```/g, (_, lang, code) => {
+    const token = `__CODE_BLOCK_${fenceMatches.length}__`;
+    fenceMatches.push(`
+      <pre><code>${esc(code.trim())}</code></pre>
+    `);
+    return token;
+  });
+
+  const lines = withoutFences.split("\n");
+  const out = [];
+  let inList = false;
+
+  const flushList = () => {
+    if (inList) {
+      out.push("</ul>");
+      inList = false;
+    }
+  };
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+
+    if (!line) {
+      flushList();
+      continue;
+    }
+
+    if (line.startsWith("# ")) {
+      flushList();
+      out.push(`<h1>${esc(line.slice(2))}</h1>`);
+      continue;
+    }
+
+    if (line.startsWith("## ")) {
+      flushList();
+      out.push(`<h2>${esc(line.slice(3))}</h2>`);
+      continue;
+    }
+
+    if (line.startsWith("### ")) {
+      flushList();
+      out.push(`<h3>${esc(line.slice(4))}</h3>`);
+      continue;
+    }
+
+    if (line.startsWith("- ") || line.startsWith("* ")) {
+      if (!inList) {
+        out.push("<ul>");
+        inList = true;
+      }
+      out.push(`<li>${esc(line.slice(2))}</li>`);
+      continue;
+    }
+
+    flushList();
+
+    let html = esc(line)
+      .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+      .replace(/`([^`]+)`/g, "<code>$1</code>");
+
+    out.push(`<p>${html}</p>`);
+  }
+
+  flushList();
+
+  let html = out.join("");
+
+  fenceMatches.forEach((block, index) => {
+    html = html.replace(`__CODE_BLOCK_${index}__`, block);
+  });
+
+  return `<div class="markdown-view">${html || "<p>No artifact body</p>"}</div>`;
+}
+
+function normalizeArtifactPayload(payload) {
+  if (!payload) return null;
+
+  const artifact = payload.artifact || payload;
+  if (!artifact || typeof artifact !== "object") return null;
+
+  return {
+    title: artifact.title || payload.title || payload.task_id || "Artifact",
+    body: artifact.body || artifact.content || artifact.text || "",
+    href: artifact.href || "",
+    path: artifact.path || "",
+    type: artifact.type || "markdown",
+  };
 }
 
 export function openArtifactModal(modal, subtitleEl, bodyEl, payload) {
   if (!modal || !subtitleEl || !bodyEl) return;
 
-  subtitleEl.textContent = payload?.title || payload?.task_id || "Artifact";
+  const artifact = normalizeArtifactPayload(payload);
+  subtitleEl.textContent = artifact?.title || payload?.title || payload?.task_id || "Artifact";
 
-  const raw = payload?.artifact;
+  const parts = [];
+
+  if (artifact?.href) {
+    parts.push(`
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
+        <a
+          href="${esc(artifact.href)}"
+          target="_blank"
+          rel="noreferrer"
+          class="ghost-btn sm"
+          style="display:inline-flex;align-items:center;justify-content:center;text-decoration:none;"
+        >
+          Open file
+        </a>
+        ${
+          artifact.path
+            ? `<div class="pill">${esc(artifact.path)}</div>`
+            : ""
+        }
+        ${
+          artifact.type
+            ? `<div class="pill">${esc(artifact.type)}</div>`
+            : ""
+        }
+      </div>
+    `);
+  }
+
+  const raw = artifact?.body ?? payload?.artifact ?? "";
 
   if (typeof raw === "object" && raw !== null) {
-    bodyEl.innerHTML = renderJsonBlock(raw);
+    parts.push(renderJsonBlock(raw));
   } else if (looksLikeJson(raw)) {
     try {
       const parsed = JSON.parse(raw);
-      bodyEl.innerHTML = renderJsonBlock(parsed);
+      parts.push(renderJsonBlock(parsed));
     } catch {
-      bodyEl.innerHTML = renderMarkdownish(String(raw || ""));
+      parts.push(renderMarkdownish(String(raw || "")));
     }
   } else {
-    bodyEl.innerHTML = renderMarkdownish(String(raw || "No artifact body"));
+    parts.push(renderMarkdownish(String(raw || "No artifact body")));
   }
 
+  bodyEl.innerHTML = parts.join("");
   modal.classList.remove("hidden");
 }
 

@@ -90,9 +90,29 @@ function escapeError(err) {
   return err.message || String(err);
 }
 
+function syncProjectFromActiveRun() {
+  if (!state.activeRunId) return;
+
+  const activeRun = state.runs.find(
+    (run) => (run.run_id || run.id || "") === state.activeRunId
+  );
+
+  if (!activeRun) return;
+
+  const projectKey = activeRun.project_key || state.activeProjectKey || "demo-project";
+  state.activeProjectKey = projectKey;
+  localStorage.setItem("warroom_project_key", projectKey);
+
+  if (el["run-project-key"]) {
+    el["run-project-key"].value = projectKey;
+  }
+}
+
 function setActiveRun(runId) {
   state.activeRunId = runId || "";
   localStorage.setItem("warroom_active_run_id", state.activeRunId);
+
+  syncProjectFromActiveRun();
   renderHeaderMetrics();
   renderRuns(el["runs-list"], state.runs, state.activeRunId);
 }
@@ -104,7 +124,7 @@ function renderHeaderMetrics() {
 
   if (el["active-run-meta"]) {
     el["active-run-meta"].textContent = state.activeRunId
-      ? "Context locked to this mission"
+      ? `Context locked to ${state.activeProjectKey || "this project"}`
       : "Create or select a run";
   }
 
@@ -164,14 +184,17 @@ async function refreshRuns() {
   try {
     const payload = await listRuns();
     state.runs = pickRows(payload);
-    renderRuns(el["runs-list"], state.runs, state.activeRunId);
 
     if (!state.activeRunId && state.runs.length) {
       const first = state.runs[0];
-      setActiveRun(first.run_id || first.id || "");
+      state.activeRunId = first.run_id || first.id || "";
+      localStorage.setItem("warroom_active_run_id", state.activeRunId);
     }
 
+    syncProjectFromActiveRun();
+    renderRuns(el["runs-list"], state.runs, state.activeRunId);
     renderSignalCorridor(el["signal-corridor"], state);
+    renderHeaderMetrics();
   } catch (err) {
     console.error(err);
     el["runs-list"].innerHTML = `<div class="run-card"><div class="card-title">Run load failed</div><div class="card-meta">${escapeError(err)}</div></div>`;
@@ -194,7 +217,8 @@ async function refreshTasks() {
 
 async function refreshMemory() {
   try {
-    const payload = await listMemory(state.activeProjectKey);
+    const projectKey = state.activeProjectKey || "demo-project";
+    const payload = await listMemory(projectKey);
     state.memory = pickRows(payload);
     renderMemory(el["memory-list"], state.memory);
   } catch (err) {
@@ -252,6 +276,7 @@ async function handleCreateRun() {
 
     await refreshRuns();
     await refreshTasks();
+    await refreshMemory();
     switchView("signals");
   } catch (err) {
     console.error(err);
@@ -294,6 +319,7 @@ async function handleDispatchTask() {
     el["dispatch-result"].textContent = JSON.stringify(data, null, 2);
 
     await refreshTasks();
+    await refreshMemory();
 
     awardPetXp(payload.general_key, 8);
     renderPetsNow();
@@ -316,6 +342,7 @@ async function handleRequeue(taskId) {
   try {
     await requeueTask(taskId);
     await refreshTasks();
+    await refreshMemory();
   } catch (err) {
     console.error(err);
     alert(`Requeue failed: ${escapeError(err)}`);
@@ -327,6 +354,7 @@ async function handleDelete(taskId) {
   try {
     await deleteTask(taskId);
     await refreshTasks();
+    await refreshMemory();
   } catch (err) {
     console.error(err);
     alert(`Delete failed: ${escapeError(err)}`);
@@ -382,6 +410,7 @@ function bindEvents() {
     if (runBtn) {
       setActiveRun(runBtn.dataset.runSelect);
       await refreshTasks();
+      await refreshMemory();
       return;
     }
 
@@ -419,7 +448,9 @@ function startPolling() {
     try {
       await refreshHealth();
       if (state.autoPollTasks) {
+        await refreshRuns();
         await refreshTasks();
+        await refreshMemory();
       }
     } catch (err) {
       console.error(err);
