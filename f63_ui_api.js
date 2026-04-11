@@ -61,6 +61,15 @@ export async function listMemory(projectKey) {
   return parseResponse(res);
 }
 
+export async function createMemory(payload) {
+  const res = await fetch("/memory", {
+    method: "POST",
+    headers: JSON_HEADERS,
+    body: JSON.stringify(payload),
+  });
+  return parseResponse(res);
+}
+
 export async function listWorkbenchFiles(prefix = "") {
   const url = `/workbench/files?prefix=${encodeURIComponent(prefix)}`;
   const res = await fetch(url);

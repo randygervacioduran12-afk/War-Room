@@ -9,15 +9,19 @@ function esc(value) {
 function looksLikeJson(value) {
   if (typeof value !== "string") return false;
   const trimmed = value.trim();
-  return (trimmed.startsWith("{") && trimmed.endsWith("}")) ||
-         (trimmed.startsWith("[") && trimmed.endsWith("]"));
+  return (
+    (trimmed.startsWith("{") && trimmed.endsWith("}")) ||
+    (trimmed.startsWith("[") && trimmed.endsWith("]"))
+  );
 }
 
 function renderJsonBlock(obj) {
   const entries = Object.entries(obj || {});
   return `
     <div class="kv">
-      ${entries.map(([key, val]) => `
+      ${entries
+        .map(
+          ([key, val]) => `
         <div class="kv-row">
           <div class="kv-key">${esc(key)}</div>
           <div>${
@@ -26,7 +30,9 @@ function renderJsonBlock(obj) {
               : esc(val)
           }</div>
         </div>
-      `).join("")}
+      `
+        )
+        .join("")}
     </div>
   `;
 }
@@ -35,13 +41,14 @@ function renderMarkdownish(text) {
   const source = String(text || "");
 
   const fenceMatches = [];
-  const withoutFences = source.replace(/```([a-zA-Z0-9_-]+)?\n([\s\S]*?)```/g, (_, lang, code) => {
-    const token = `__CODE_BLOCK_${fenceMatches.length}__`;
-    fenceMatches.push(`
-      <pre><code>${esc(code.trim())}</code></pre>
-    `);
-    return token;
-  });
+  const withoutFences = source.replace(
+    /```([a-zA-Z0-9_-]+)?\n([\s\S]*?)```/g,
+    (_, _lang, code) => {
+      const token = `__CODE_BLOCK_${fenceMatches.length}__`;
+      fenceMatches.push(`<pre><code>${esc(code.trim())}</code></pre>`);
+      return token;
+    }
+  );
 
   const lines = withoutFences.split("\n");
   const out = [];
@@ -91,7 +98,7 @@ function renderMarkdownish(text) {
 
     flushList();
 
-    let html = esc(line)
+    const html = esc(line)
       .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
       .replace(/`([^`]+)`/g, "<code>$1</code>");
 
@@ -101,12 +108,17 @@ function renderMarkdownish(text) {
   flushList();
 
   let html = out.join("");
-
   fenceMatches.forEach((block, index) => {
     html = html.replace(`__CODE_BLOCK_${index}__`, block);
   });
 
   return `<div class="markdown-view">${html || "<p>No artifact body</p>"}</div>`;
+}
+
+function inferHref(path) {
+  if (!path) return "";
+  if (String(path).startsWith("/")) return path;
+  return `/artifact-files/${String(path).replace(/^\/+/, "")}`;
 }
 
 function normalizeArtifactPayload(payload) {
@@ -115,11 +127,14 @@ function normalizeArtifactPayload(payload) {
   const artifact = payload.artifact || payload;
   if (!artifact || typeof artifact !== "object") return null;
 
+  const path = artifact.path || "";
+  const href = artifact.href || inferHref(path);
+
   return {
     title: artifact.title || payload.title || payload.task_id || "Artifact",
     body: artifact.body || artifact.content || artifact.text || "",
-    href: artifact.href || "",
-    path: artifact.path || "",
+    href,
+    path,
     type: artifact.type || "markdown",
   };
 }
@@ -128,32 +143,31 @@ export function openArtifactModal(modal, subtitleEl, bodyEl, payload) {
   if (!modal || !subtitleEl || !bodyEl) return;
 
   const artifact = normalizeArtifactPayload(payload);
-  subtitleEl.textContent = artifact?.title || payload?.title || payload?.task_id || "Artifact";
+  subtitleEl.textContent =
+    artifact?.title || payload?.title || payload?.task_id || "Artifact";
 
   const parts = [];
 
-  if (artifact?.href) {
+  if (artifact?.href || artifact?.path || artifact?.type) {
     parts.push(`
-      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
-        <a
-          href="${esc(artifact.href)}"
-          target="_blank"
-          rel="noreferrer"
-          class="ghost-btn sm"
-          style="display:inline-flex;align-items:center;justify-content:center;text-decoration:none;"
-        >
-          Open file
-        </a>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;">
         ${
-          artifact.path
-            ? `<div class="pill">${esc(artifact.path)}</div>`
+          artifact?.href
+            ? `
+          <a
+            href="${esc(artifact.href)}"
+            target="_blank"
+            rel="noreferrer"
+            class="ghost-btn sm"
+            style="display:inline-flex;align-items:center;justify-content:center;"
+          >
+            Open file
+          </a>
+        `
             : ""
         }
-        ${
-          artifact.type
-            ? `<div class="pill">${esc(artifact.type)}</div>`
-            : ""
-        }
+        ${artifact?.path ? `<div class="pill">${esc(artifact.path)}</div>` : ""}
+        ${artifact?.type ? `<div class="pill">${esc(artifact.type)}</div>` : ""}
       </div>
     `);
   }

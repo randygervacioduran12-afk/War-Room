@@ -5,6 +5,7 @@ import {
   listTasks,
   createTask,
   listMemory,
+  createMemory,
   listWorkbenchFiles,
   requeueTask,
   deleteTask,
@@ -22,10 +23,8 @@ import {
   renderTaskBoard,
 } from "/f64_ui_components.js";
 
-import { bootTheme, cycleTheme } from "/f65_ui_theme.js";
-import { normalizeWorkbenchPayload } from "/f66_ui_workbench.js";
 import { openArtifactModal, closeArtifactModal } from "/f67_ui_artifacts.js";
-import { getPets, awardPetXp, renderPets } from "/f68_ui_pets.js";
+import { normalizeWorkbenchPayload } from "/f66_ui_workbench.js";
 
 const state = {
   activeRunId: localStorage.getItem("warroom_active_run_id") || "",
@@ -36,6 +35,7 @@ const state = {
   tasks: [],
   memory: [],
   workbench: [],
+  activeAgentPreset: "general_of_the_army",
 };
 
 const el = {};
@@ -53,6 +53,7 @@ function cacheDom() {
     "artifact-pulse-meta",
     "launch-result",
     "dispatch-result",
+    "note-result",
     "run-project-key",
     "run-adapter-key",
     "run-goal",
@@ -60,14 +61,17 @@ function cacheDom() {
     "dispatch-task-type",
     "dispatch-title",
     "dispatch-message",
+    "note-title",
+    "note-body",
     "health-cards",
     "signal-corridor",
     "task-board",
     "runs-list",
     "memory-list",
+    "memory-list-secondary",
     "workbench-grid",
     "artifact-grid",
-    "pet-list",
+    "artifact-grid-secondary",
     "workbench-prefix",
     "artifact-modal",
     "artifact-modal-subtitle",
@@ -88,6 +92,17 @@ function escapeError(err) {
     }
   }
   return err.message || String(err);
+}
+
+function setAgentPreset(generalKey) {
+  state.activeAgentPreset = generalKey || "general_of_the_army";
+  if (el["dispatch-general-key"]) {
+    el["dispatch-general-key"].value = state.activeAgentPreset;
+  }
+
+  document.querySelectorAll("[data-agent-preset]").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.agentPreset === state.activeAgentPreset);
+  });
 }
 
 function syncProjectFromActiveRun() {
@@ -114,6 +129,16 @@ function setActiveRun(runId) {
   syncProjectFromActiveRun();
   renderHeaderMetrics();
   renderRuns(el["runs-list"], state.runs, state.activeRunId);
+}
+
+function switchView(view) {
+  document.querySelectorAll(".nav-chip").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.view === view);
+  });
+
+  document.querySelectorAll(".view-panel").forEach((section) => {
+    section.classList.toggle("active-view", section.id === `view-${view}`);
+  });
 }
 
 function renderHeaderMetrics() {
@@ -183,8 +208,8 @@ async function refreshRuns() {
     state.runs = pickRows(payload?.runs || payload);
 
     if (!state.activeRunId && state.runs.length) {
-      const newest = state.runs[0];
-      state.activeRunId = newest.run_id || newest.id || "";
+      const first = state.runs[0];
+      state.activeRunId = first.run_id || first.id || "";
       localStorage.setItem("warroom_active_run_id", state.activeRunId);
     }
 
@@ -204,6 +229,7 @@ async function refreshTasks() {
       state.tasks = [];
       renderTaskBoard(el["task-board"], state.tasks);
       renderArtifacts(el["artifact-grid"], state.tasks);
+      renderArtifacts(el["artifact-grid-secondary"], state.tasks);
       renderSignalCorridor(el["signal-corridor"], state);
       renderHeaderMetrics();
       return;
@@ -213,6 +239,7 @@ async function refreshTasks() {
     state.tasks = pickRows(payload);
     renderTaskBoard(el["task-board"], state.tasks);
     renderArtifacts(el["artifact-grid"], state.tasks);
+    renderArtifacts(el["artifact-grid-secondary"], state.tasks);
     renderSignalCorridor(el["signal-corridor"], state);
     renderHeaderMetrics();
   } catch (err) {
@@ -226,9 +253,12 @@ async function refreshMemory() {
     const payload = await listMemory(state.activeProjectKey || "demo-project");
     state.memory = pickRows(payload);
     renderMemory(el["memory-list"], state.memory);
+    renderMemory(el["memory-list-secondary"], state.memory);
   } catch (err) {
     console.error(err);
-    el["memory-list"].innerHTML = `<div class="memory-card"><div class="card-title">Memory load failed</div><div class="card-meta">${escapeError(err)}</div></div>`;
+    const markup = `<div class="memory-card"><div class="card-title">Memory load failed</div><div class="card-meta">${escapeError(err)}</div></div>`;
+    if (el["memory-list"]) el["memory-list"].innerHTML = markup;
+    if (el["memory-list-secondary"]) el["memory-list-secondary"].innerHTML = markup;
   }
 }
 
@@ -242,20 +272,6 @@ async function refreshWorkbench() {
     console.error(err);
     el["workbench-grid"].innerHTML = `<div class="file-card"><div class="card-title">Workbench load failed</div><div class="card-meta">${escapeError(err)}</div></div>`;
   }
-}
-
-function renderPetsNow() {
-  renderPets(el["pet-list"], getPets());
-}
-
-function switchView(view) {
-  document.querySelectorAll(".nav-btn").forEach((btn) => {
-    btn.classList.toggle("active", btn.dataset.view === view);
-  });
-
-  document.querySelectorAll(".view-panel").forEach((section) => {
-    section.classList.toggle("active-view", section.id === `view-${view}`);
-  });
 }
 
 async function handleCreateRun() {
@@ -303,7 +319,7 @@ async function handleDispatchTask() {
 
   const payload = {
     run_id: state.activeRunId,
-    general_key: el["dispatch-general-key"].value.trim() || "general_of_the_army",
+    general_key: el["dispatch-general-key"].value.trim() || state.activeAgentPreset,
     task_type: el["dispatch-task-type"].value.trim() || "plan",
     title: el["dispatch-title"].value.trim() || "Manual mission dispatch",
     project_key: state.activeProjectKey,
@@ -323,9 +339,6 @@ async function handleDispatchTask() {
     const data = await createTask(payload);
     el["dispatch-result"].textContent = JSON.stringify(data, null, 2);
 
-    awardPetXp(payload.general_key, 8);
-    renderPetsNow();
-
     await refreshTasks();
     await refreshMemory();
     switchView("signals");
@@ -333,6 +346,42 @@ async function handleDispatchTask() {
     console.error(err);
     el["dispatch-result"].textContent = JSON.stringify(
       { error: "Task dispatch failed", detail: escapeError(err) },
+      null,
+      2
+    );
+  }
+}
+
+async function handleSaveNote() {
+  const title = el["note-title"].value.trim() || "Operator note";
+  const body = el["note-body"].value.trim();
+
+  if (!body) {
+    el["note-result"].textContent = JSON.stringify(
+      { error: "Note body is required" },
+      null,
+      2
+    );
+    return;
+  }
+
+  try {
+    const data = await createMemory({
+      project_key: state.activeProjectKey || "demo-project",
+      run_id: state.activeRunId || null,
+      memory_type: "note",
+      title,
+      body,
+      source_task_id: null,
+    });
+
+    el["note-result"].textContent = JSON.stringify(data, null, 2);
+    await refreshMemory();
+    switchView("memory");
+  } catch (err) {
+    console.error(err);
+    el["note-result"].textContent = JSON.stringify(
+      { error: "Save note failed", detail: escapeError(err) },
       null,
       2
     );
@@ -367,7 +416,6 @@ async function refreshAll() {
   await refreshTasks();
   await refreshMemory();
   await refreshWorkbench();
-  renderPetsNow();
 }
 
 function bootSanctuaryMotion() {
@@ -379,7 +427,7 @@ function bootSanctuaryMotion() {
     const rect = surface.getBoundingClientRect();
     const x = (event.clientX - rect.left) / rect.width - 0.5;
     const y = (event.clientY - rect.top) / rect.height - 0.5;
-    core.style.transform = `rotateX(${y * -8}deg) rotateY(${x * 10}deg) translate3d(${x * 6}px, ${y * 6}px, 0)`;
+    core.style.transform = `rotateX(${y * -7}deg) rotateY(${x * 10}deg) translate3d(${x * 8}px, ${y * 8}px, 0)`;
   });
 
   surface.addEventListener("pointerleave", () => {
@@ -388,23 +436,31 @@ function bootSanctuaryMotion() {
 }
 
 function bindEvents() {
-  document.querySelectorAll(".nav-btn").forEach((btn) => {
+  document.querySelectorAll(".nav-chip").forEach((btn) => {
     btn.addEventListener("click", () => switchView(btn.dataset.view));
   });
 
-  document.getElementById("theme-cycle-btn")?.addEventListener("click", cycleTheme);
+  document.querySelectorAll("[data-agent-preset]").forEach((btn) => {
+    btn.addEventListener("click", () => setAgentPreset(btn.dataset.agentPreset));
+  });
+
   document.getElementById("refresh-all-btn")?.addEventListener("click", refreshAll);
   document.getElementById("health-refresh-btn")?.addEventListener("click", refreshHealth);
   document.getElementById("load-runs-btn")?.addEventListener("click", refreshRuns);
   document.getElementById("load-tasks-btn")?.addEventListener("click", refreshTasks);
   document.getElementById("load-memory-btn")?.addEventListener("click", refreshMemory);
+  document.getElementById("load-artifacts-btn")?.addEventListener("click", () => {
+    renderArtifacts(el["artifact-grid"], state.tasks);
+  });
+  document.getElementById("load-artifacts-btn-secondary")?.addEventListener("click", () => {
+    renderArtifacts(el["artifact-grid-secondary"], state.tasks);
+  });
   document.getElementById("load-workbench-btn")?.addEventListener("click", refreshWorkbench);
-  document.getElementById("load-artifacts-btn")?.addEventListener("click", () => renderArtifacts(el["artifact-grid"], state.tasks));
 
   document.getElementById("create-run-btn")?.addEventListener("click", handleCreateRun);
   document.getElementById("dispatch-task-btn")?.addEventListener("click", handleDispatchTask);
+  document.getElementById("save-note-btn")?.addEventListener("click", handleSaveNote);
 
-  document.getElementById("open-launch-btn")?.addEventListener("click", () => switchView("operations"));
   document.getElementById("hero-launch-btn")?.addEventListener("click", () => switchView("operations"));
   document.getElementById("hero-dispatch-btn")?.addEventListener("click", () => switchView("operations"));
 
@@ -476,10 +532,9 @@ function startPolling() {
 
 async function boot() {
   cacheDom();
-  bootTheme();
   bindEvents();
   bootSanctuaryMotion();
-  renderPetsNow();
+  setAgentPreset(state.activeAgentPreset);
   switchView("overview");
   await refreshAll();
   startPolling();

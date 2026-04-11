@@ -28,7 +28,7 @@ function parseMaybeJson(value) {
   return value;
 }
 
-function previewText(value, max = 240) {
+function previewText(value, max = 220) {
   if (value == null) return "";
   let text = typeof value === "string" ? value : JSON.stringify(value, null, 2);
   text = text.replace(/```[\s\S]*?```/g, "[code block]");
@@ -46,6 +46,12 @@ function formatDate(value) {
   }
 }
 
+function inferHref(path) {
+  if (!path) return "";
+  if (String(path).startsWith("/")) return path;
+  return `/artifact-files/${String(path).replace(/^\/+/, "")}`;
+}
+
 function normalizeArtifact(task) {
   const directArtifact = parseMaybeJson(task?.artifact_json);
   const resultJson = parseMaybeJson(task?.result_json);
@@ -57,8 +63,12 @@ function normalizeArtifact(task) {
     null;
 
   const artifact = directArtifact || nestedArtifact;
+  const fallbackPath = task?.artifact_path || "";
 
   if (artifact && typeof artifact === "object") {
+    const path = artifact.path || fallbackPath || "";
+    const href = artifact.href || inferHref(path);
+
     return {
       type: artifact.type || "markdown",
       title: artifact.title || task.title || "Artifact",
@@ -68,40 +78,42 @@ function normalizeArtifact(task) {
         artifact.text ||
         resultJson?.raw_text ||
         resultJson?.summary ||
+        outputPayload?.summary ||
         "",
-      href: artifact.href || "",
-      path: artifact.path || task.artifact_path || "",
+      href,
+      path,
       general_key: artifact.general_key || task.general_key || "",
       task_id: artifact.task_id || task.task_id || "",
       created_at: artifact.created_at || task.updated_at || task.created_at || "",
     };
   }
 
-  const fallbackBody =
-    resultJson?.raw_text ||
-    resultJson?.summary ||
-    outputPayload?.raw_text ||
-    task?.artifact_path ||
+  const summaryBody =
+    (resultJson && typeof resultJson === "object" && (resultJson.summary || resultJson.raw_text)) ||
+    (outputPayload && typeof outputPayload === "object" && (outputPayload.summary || outputPayload.raw_text)) ||
     "";
 
-  if (!fallbackBody) return null;
+  if (summaryBody || fallbackPath) {
+    return {
+      type: "markdown",
+      title: task.title || "Artifact",
+      body: String(summaryBody || "Open generated file."),
+      href: inferHref(fallbackPath),
+      path: fallbackPath,
+      general_key: task.general_key || "",
+      task_id: task.task_id || "",
+      created_at: task.updated_at || task.created_at || "",
+    };
+  }
 
-  return {
-    type: "markdown",
-    title: task.title || "Artifact",
-    body: String(fallbackBody),
-    href: "",
-    path: task.artifact_path || "",
-    general_key: task.general_key || "",
-    task_id: task.task_id || "",
-    created_at: task.updated_at || task.created_at || "",
-  };
+  return null;
 }
 
 export function pickRows(payload) {
   if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload?.rows)) return payload.rows;
   if (Array.isArray(payload?.items)) return payload.items;
+  if (Array.isArray(payload?.rows)) return payload.rows;
+  if (Array.isArray(payload?.runs)) return payload.runs;
   if (Array.isArray(payload?.data)) return payload.data;
   return [];
 }
@@ -122,8 +134,8 @@ export function renderHealthCards(target, health) {
 
   const cards = [
     ["API", health?.ok ? "online" : "degraded", health?.timestamp || ""],
-    ["Database", health?.db_ok ? "up" : "down", health?.db_error || "SQLite ready"],
-    ["LLM", health?.llm_ok ? "up" : "down", health?.provider || "No provider"],
+    ["Database", health?.db_ok ? "up" : "down", health?.db_error || "storage ready"],
+    ["LLM", health?.llm_ok ? "up" : "down", health?.provider || "provider missing"],
     ["Environment", health?.app_env || "dev", "current runtime"],
   ];
 
@@ -132,7 +144,7 @@ export function renderHealthCards(target, health) {
       ([title, value, meta]) => `
       <div class="health-card">
         <div class="card-title">${esc(title)}</div>
-        <div style="font-size:28px;font-weight:900;line-height:1.1;margin:10px 0 6px;">${esc(value)}</div>
+        <div style="font-size:28px;font-weight:900;line-height:1.05;margin:10px 0 6px;">${esc(value)}</div>
         <div class="card-meta">${esc(meta)}</div>
       </div>
     `
@@ -147,18 +159,17 @@ export function renderSignalCorridor(target, state) {
   const claimed = state.tasks.filter((t) => t.status === "claimed").length;
   const completed = state.tasks.filter((t) => t.status === "completed").length;
   const failed = state.tasks.filter((t) => t.status === "failed").length;
+  const artifacts = state.tasks.filter((t) => normalizeArtifact(t)).length;
 
   const cards = [
-    ["Runs", state.runs.length, "open mission threads"],
+    ["Runs", state.runs.length, "mission threads"],
     ["Queued", queued, "awaiting execution"],
     ["Claimed", claimed, "currently owned"],
     ["Completed", completed, "delivered outcomes"],
-    ["Failed", failed, "needs operator review"],
-    [
-      "Artifacts",
-      state.tasks.filter((t) => normalizeArtifact(t)).length,
-      "dock-ready outputs",
-    ],
+    ["Failed", failed, "needs review"],
+    ["Artifacts", artifacts, "dock-ready outputs"],
+    ["Project", state.activeProjectKey || "—", "current context"],
+    ["Active run", state.activeRunId || "—", "selected mission"],
   ];
 
   target.innerHTML = cards
@@ -166,7 +177,7 @@ export function renderSignalCorridor(target, state) {
       ([title, value, meta]) => `
       <div class="signal-card">
         <div class="card-title">${esc(title)}</div>
-        <div style="font-size:32px;font-weight:900;line-height:1;margin:8px 0 4px;">${esc(value)}</div>
+        <div style="font-size:28px;font-weight:900;line-height:1.05;margin:8px 0 4px;word-break:break-word;">${esc(value)}</div>
         <div class="card-meta">${esc(meta)}</div>
       </div>
     `
@@ -230,7 +241,7 @@ export function renderMemory(target, rows) {
           <div class="task-tags">
             ${metaBits.map((bit) => `<span class="pill">${esc(bit)}</span>`).join("")}
           </div>
-          <div class="card-meta" style="margin-top:12px;">${esc(previewText(body, 420))}</div>
+          <div class="card-meta" style="margin-top:12px;">${esc(previewText(body, 620))}</div>
         </div>
       `;
     })
@@ -263,7 +274,7 @@ export function renderArtifacts(target, tasks) {
     .filter((entry) => entry.artifact);
 
   if (!rows.length) {
-    target.innerHTML = `<div class="artifact-card"><div class="card-title">No artifacts</div><div class="card-meta">Run and complete tasks to populate the dock.</div></div>`;
+    target.innerHTML = `<div class="artifact-card"><div class="card-title">No artifacts</div><div class="card-meta">Complete tasks to populate the dock.</div></div>`;
     return;
   }
 
@@ -277,25 +288,33 @@ export function renderArtifacts(target, tasks) {
         artifact,
       };
 
+      const encoded = esc(JSON.stringify(modalPayload));
+
       return `
         <div class="artifact-card">
           <div class="card-title">${esc(artifact.title || task.title || "Artifact")}</div>
-          <div class="card-meta">
-            ${esc(previewText(artifact.body, 220))}
-          </div>
+          <div class="card-meta" style="margin-top:10px;">${esc(previewText(artifact.body, 280))}</div>
+
           <div class="task-tags">
             <span class="pill">${esc(artifact.type || "markdown")}</span>
             <span class="pill">${esc(task.status || "completed")}</span>
-            ${artifact.path ? `<span class="pill">${esc(artifact.path)}</span>` : ""}
+            ${artifact.general_key ? `<span class="pill">${esc(artifact.general_key)}</span>` : ""}
           </div>
-          <div class="task-actions">
-            <button class="ghost-btn sm" data-artifact-open='${esc(JSON.stringify(modalPayload))}'>Open</button>
+
+          <div class="artifact-links">
             ${
               artifact.href
                 ? `<a class="ghost-btn sm" href="${esc(artifact.href)}" target="_blank" rel="noreferrer">Open file</a>`
                 : ""
             }
+            <button class="ghost-btn sm" data-artifact-open='${encoded}'>Open preview</button>
           </div>
+
+          ${
+            artifact.path
+              ? `<div class="card-meta" style="margin-top:12px;">file: ${esc(artifact.path)}</div>`
+              : `<div class="card-meta" style="margin-top:12px;">inline artifact only</div>`
+          }
         </div>
       `;
     })
@@ -335,27 +354,19 @@ export function renderTaskBoard(target, tasks) {
   if (!target) return;
 
   const lanes = [
-    ["queued", "Queued"],
-    ["claimed", "Claimed"],
-    ["completed", "Completed"],
-    ["failed", "Failed"],
+    ["queued", "Queued", "Awaiting execution"],
+    ["claimed", "Claimed", "Currently active"],
+    ["completed", "Completed", "Delivered outcomes"],
+    ["failed", "Failed", "Needs review"],
   ];
 
   target.innerHTML = lanes
-    .map(([status, label]) => {
+    .map(([status, label, meta]) => {
       const laneTasks = tasks.filter((task) => task.status === status);
       return `
         <section class="lane">
           <div class="lane-title">${esc(label)} · ${laneTasks.length}</div>
-          <div class="lane-meta">${
-            status === "queued"
-              ? "Awaiting execution"
-              : status === "claimed"
-              ? "Currently active"
-              : status === "completed"
-              ? "Delivered outcomes"
-              : "Needs review"
-          }</div>
+          <div class="lane-meta">${esc(meta)}</div>
           ${
             laneTasks.length
               ? laneTasks.map(renderTaskCard).join("")
