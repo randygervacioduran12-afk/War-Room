@@ -1,321 +1,324 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta
-      name="viewport"
-      content="width=device-width,initial-scale=1,viewport-fit=cover"
-    />
-    <title>Claude Sanctuary // War Room</title>
-    <link rel="stylesheet" href="/f61_ui_styles.css?v=9" />
-  </head>
-  <body>
-    <div class="app-shell">
-      <div class="bg-grid"></div>
-      <div class="bg-glow glow-a"></div>
-      <div class="bg-glow glow-b"></div>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>War Room // Claude Sanctuary</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="/f61_ui_styles.css?v=11" />
+</head>
+<body>
 
-      <header class="topbar glass">
-        <div class="brand-lockup">
-          <div class="brand-mark">C</div>
-          <div>
-            <div class="brand-title">Claude Sanctuary</div>
-            <div class="brand-sub">war room command surface</div>
-          </div>
-        </div>
+<div class="app-shell">
+  <!-- Atmosphere layers -->
+  <div class="bg-grid"></div>
+  <div class="bg-glow glow-a"></div>
+  <div class="bg-glow glow-b"></div>
+  <div class="bg-glow glow-c"></div>
+  <div class="bg-noise"></div>
+  <div class="bg-scanlines"></div>
 
-        <nav class="topnav">
-          <button class="nav-chip active" data-view="overview">Overview</button>
-          <button class="nav-chip" data-view="signals">Signals</button>
-          <button class="nav-chip" data-view="operations">Operations</button>
-          <button class="nav-chip" data-view="memory">Memory</button>
-          <button class="nav-chip" data-view="artifacts">Artifacts</button>
-          <button class="nav-chip" data-view="workbench">Workbench</button>
-        </nav>
-
-        <div class="topbar-actions">
-          <button id="refresh-all-btn" class="ghost-btn sm">Refresh all</button>
-          <button id="auto-poll-tasks-btn" class="ghost-btn sm">Auto poll: on</button>
-        </div>
-      </header>
-
-      <main class="workspace">
-        <section class="hero glass" data-tilt-surface>
-          <div class="hero-copy">
-            <div class="eyebrow">claude-first operational deck</div>
-            <h1>Command one core. Launch many outcomes.</h1>
-            <p>
-              Clean runs, readable artifacts, persistent memory, and a single
-              Claude-centered command workspace.
-            </p>
-
-            <div class="hero-actions">
-              <button id="hero-launch-btn" class="primary-btn">Launch run</button>
-              <button id="hero-dispatch-btn" class="secondary-btn">Dispatch task</button>
-            </div>
-
-            <div class="hero-metrics">
-              <div id="mini-health"></div>
-              <div class="metric-chip"><span id="active-run-id">No active run</span></div>
-              <div class="metric-chip wide"><span id="active-run-meta">Create or select a run</span></div>
-              <div class="metric-chip"><span id="health-overview">System nominal</span></div>
-              <div class="metric-chip"><span id="health-meta">db=? · llm=?</span></div>
-              <div class="metric-chip"><span id="task-pulse">0 queued · 0 claimed</span></div>
-              <div class="metric-chip"><span id="task-pulse-meta">0 completed · 0 failed</span></div>
-              <div class="metric-chip"><span id="artifact-pulse">No artifacts</span></div>
-              <div class="metric-chip"><span id="artifact-pulse-meta">Dock idle</span></div>
-            </div>
-
-            <div class="agent-preset-bar">
-              <button class="agent-pill active" data-agent-preset="general_of_the_army">Army</button>
-              <button class="agent-pill" data-agent-preset="general_of_engineering">Engineering</button>
-              <button class="agent-pill" data-agent-preset="general_of_intelligence">Intelligence</button>
-              <button class="agent-pill" data-agent-preset="general_of_the_archive">Archive</button>
-              <button class="agent-pill" data-agent-preset="general_of_review">Review</button>
-            </div>
-          </div>
-
-          <div class="hero-scene">
-            <div class="claude-sanctuary" id="claude-sanctuary">
-              <div class="sanctuary-glow"></div>
-              <div class="sanctuary-grid"></div>
-
-              <div class="sanctuary-node node-army">ARMY</div>
-              <div class="sanctuary-node node-eng">ENG</div>
-              <div class="sanctuary-node node-intel">INTEL</div>
-
-              <div class="claude-core">
-                <span class="ear left"></span>
-                <span class="ear right"></span>
-                <span class="eye left"></span>
-                <span class="eye right"></span>
-                <span class="leg l1"></span>
-                <span class="leg l2"></span>
-                <span class="leg l3"></span>
-                <span class="leg l4"></span>
-              </div>
-
-              <div class="scene-label glass">claude sanctuary active</div>
-            </div>
-          </div>
-        </section>
-
-        <section id="view-overview" class="view-panel active-view">
-          <div class="panel-grid panel-grid-overview">
-            <section class="panel glass">
-              <div class="panel-head">
-                <h2>System link</h2>
-                <button id="health-refresh-btn" class="ghost-btn sm">Refresh</button>
-              </div>
-              <div id="health-cards" class="card-grid two"></div>
-            </section>
-
-            <section class="panel glass">
-              <div class="panel-head">
-                <h2>Signal corridor</h2>
-              </div>
-              <div id="signal-corridor" class="card-grid four"></div>
-            </section>
-
-            <section class="panel glass">
-              <div class="panel-head">
-                <h2>Artifact dock</h2>
-                <button id="load-artifacts-btn" class="ghost-btn sm">Refresh dock</button>
-              </div>
-              <div id="artifact-grid" class="artifact-grid"></div>
-            </section>
-
-            <section class="panel glass">
-              <div class="panel-head">
-                <h2>Memory feed</h2>
-                <button id="load-memory-btn" class="ghost-btn sm">Load memory</button>
-              </div>
-              <div id="memory-list" class="stack-list"></div>
-            </section>
-          </div>
-        </section>
-
-        <section id="view-signals" class="view-panel">
-          <div class="panel-grid panel-grid-signals">
-            <section class="panel glass">
-              <div class="panel-head">
-                <h2>Run registry</h2>
-                <button id="load-runs-btn" class="ghost-btn sm">Load runs</button>
-              </div>
-              <div id="runs-list" class="stack-list"></div>
-            </section>
-
-            <section class="panel glass">
-              <div class="panel-head">
-                <h2>Task board</h2>
-                <button id="load-tasks-btn" class="ghost-btn sm">Load tasks</button>
-              </div>
-              <div id="task-board" class="task-lanes"></div>
-            </section>
-          </div>
-        </section>
-
-        <section id="view-operations" class="view-panel">
-          <div class="panel-grid panel-grid-ops">
-            <section class="panel glass">
-              <div class="panel-head">
-                <h2>Launch run</h2>
-              </div>
-
-              <div class="form-grid">
-                <label class="field">
-                  <span>Project key</span>
-                  <input id="run-project-key" value="demo-project" />
-                </label>
-
-                <label class="field">
-                  <span>Adapter key</span>
-                  <input id="run-adapter-key" value="research_project" />
-                </label>
-
-                <label class="field field-wide">
-                  <span>Goal</span>
-                  <textarea id="run-goal">Design an overnight AI research pipeline</textarea>
-                </label>
-              </div>
-
-              <button id="create-run-btn" class="primary-btn">Launch run</button>
-              <pre id="launch-result" class="result-box"></pre>
-            </section>
-
-            <section class="panel glass">
-              <div class="panel-head">
-                <h2>Dispatch mission</h2>
-              </div>
-
-              <div class="form-grid">
-                <label class="field">
-                  <span>General key</span>
-                  <input id="dispatch-general-key" value="general_of_the_army" />
-                </label>
-
-                <label class="field">
-                  <span>Task type</span>
-                  <input id="dispatch-task-type" value="plan" />
-                </label>
-
-                <label class="field">
-                  <span>Title</span>
-                  <input id="dispatch-title" value="Manual mission dispatch" />
-                </label>
-
-                <label class="field field-wide">
-                  <span>Operator message</span>
-                  <textarea id="dispatch-message">Summarize current state and recommend the next move.</textarea>
-                </label>
-              </div>
-
-              <button id="dispatch-task-btn" class="primary-btn">Dispatch mission</button>
-              <pre id="dispatch-result" class="result-box"></pre>
-            </section>
-          </div>
-        </section>
-
-        <section id="view-memory" class="view-panel">
-          <div class="panel-grid panel-grid-memory">
-            <section class="panel glass">
-              <div class="panel-head">
-                <h2>Notes</h2>
-              </div>
-
-              <div class="form-grid">
-                <label class="field">
-                  <span>Note title</span>
-                  <input id="note-title" value="Operator note" />
-                </label>
-
-                <label class="field field-wide">
-                  <span>Note body</span>
-                  <textarea id="note-body">Write a persistent note for this project.</textarea>
-                </label>
-              </div>
-
-              <button id="save-note-btn" class="primary-btn">Save note</button>
-              <pre id="note-result" class="result-box"></pre>
-            </section>
-
-            <section class="panel glass">
-              <div class="panel-head">
-                <h2>Project memory</h2>
-              </div>
-              <div id="memory-list-secondary" class="stack-list"></div>
-            </section>
-          </div>
-        </section>
-
-        <section id="view-artifacts" class="view-panel">
-          <div class="panel-grid panel-grid-artifacts">
-            <section class="panel glass">
-              <div class="panel-head">
-                <h2>Artifact dock</h2>
-                <button id="load-artifacts-btn-secondary" class="ghost-btn sm">Refresh dock</button>
-              </div>
-              <div id="artifact-grid-secondary" class="artifact-grid"></div>
-            </section>
-          </div>
-        </section>
-
-        <section id="view-workbench" class="view-panel">
-          <div class="panel-grid panel-grid-workbench">
-            <section class="panel glass">
-              <div class="panel-head">
-                <h2>Workbench</h2>
-                <button id="load-workbench-btn" class="ghost-btn sm">Refresh workbench</button>
-              </div>
-
-              <div class="form-grid">
-                <label class="field field-wide">
-                  <span>Prefix filter</span>
-                  <input id="workbench-prefix" value="" placeholder="f6" />
-                </label>
-              </div>
-
-              <div id="workbench-grid" class="artifact-grid"></div>
-            </section>
-          </div>
-        </section>
-      </main>
-    </div>
-
-    <div id="artifact-modal" class="artifact-modal hidden">
-      <div class="modal-backdrop"></div>
-      <div class="modal-card glass">
-        <div class="modal-head">
-          <div>
-            <div class="modal-title">Artifact dock</div>
-            <div id="artifact-modal-subtitle" class="modal-subtitle">Preview</div>
-          </div>
-          <button id="close-artifact-modal" class="ghost-btn sm">Close</button>
-        </div>
-        <div id="artifact-modal-body" class="modal-body"></div>
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="brand-lockup">
+      <div class="brand-mark">C</div>
+      <div>
+        <div class="brand-title">Claude Sanctuary</div>
+        <div class="brand-sub">war room · memory os v3 · all slots active</div>
       </div>
     </div>
 
-    <div id="boot-debug" class="boot-debug"></div>
+    <nav class="topnav">
+      <button class="nav-chip active" data-view="overview">Overview</button>
+      <button class="nav-chip" data-view="signals">Signals</button>
+      <button class="nav-chip" data-view="operations">Operations</button>
+      <button class="nav-chip" data-view="memory">Memory</button>
+      <button class="nav-chip" data-view="artifacts">Artifacts</button>
+      <button class="nav-chip" data-view="workbench">Workbench</button>
+    </nav>
 
-    <script>
-      window.addEventListener("error", function (event) {
-        const box = document.getElementById("boot-debug");
-        if (!box) return;
-        box.style.display = "block";
-        box.textContent = "UI boot error: " + event.message;
-      });
+    <div class="topbar-actions">
+      <button id="refresh-all-btn"     class="ghost-btn sm">↻ Refresh</button>
+      <button id="auto-poll-tasks-btn" class="ghost-btn sm">● Auto poll: on</button>
+    </div>
+  </header>
 
-      window.addEventListener("unhandledrejection", function (event) {
-        const box = document.getElementById("boot-debug");
-        if (!box) return;
-        box.style.display = "block";
-        box.textContent =
-          "UI promise error: " +
-          (event.reason?.message || String(event.reason || "Unknown"));
-      });
-    </script>
+  <!-- MAIN WORKSPACE -->
+  <main class="workspace">
 
-    <script type="module" src="/f62_ui_app.js?v=9"></script>
-  </body>
+    <!-- HERO -->
+    <section class="hero glass" data-tilt-surface>
+
+      <div class="hero-copy">
+        <div class="eyebrow">claude-first operational deck · memory os active</div>
+
+        <h1>Command one core.<br><em>Launch many outcomes.</em></h1>
+
+        <p>
+          Clean runs, readable artifacts, persistent memory —
+          a single Claude-centered command surface engineered
+          for elite builders and funded traders.
+        </p>
+
+        <div class="hero-actions">
+          <button id="hero-launch-btn"   class="primary-btn">⚡ Launch run</button>
+          <button id="hero-dispatch-btn" class="secondary-btn">→ Dispatch task</button>
+        </div>
+
+        <div class="hero-metrics">
+          <div id="mini-health"        class="metric-chip"></div>
+          <div class="metric-chip">   <span id="active-run-id">No active run</span></div>
+          <div class="metric-chip wide"><span id="active-run-meta">Create or select a run</span></div>
+          <div class="metric-chip">   <span id="health-overview">System nominal</span></div>
+          <div class="metric-chip">   <span id="health-meta">db=? · llm=?</span></div>
+          <div class="metric-chip">   <span id="task-pulse">0 queued · 0 claimed</span></div>
+          <div class="metric-chip">   <span id="task-pulse-meta">0 completed · 0 failed</span></div>
+          <div class="metric-chip">   <span id="artifact-pulse">No artifacts</span></div>
+          <div class="metric-chip">   <span id="artifact-pulse-meta">Dock idle</span></div>
+        </div>
+
+        <div class="agent-preset-bar">
+          <button class="agent-pill active" data-agent-preset="general_of_the_army">◆ Army</button>
+          <button class="agent-pill"        data-agent-preset="general_of_engineering">◆ Engineering</button>
+          <button class="agent-pill"        data-agent-preset="general_of_intelligence">◆ Intelligence</button>
+          <button class="agent-pill"        data-agent-preset="general_of_the_archive">◆ Archive</button>
+          <button class="agent-pill"        data-agent-preset="general_of_review">◆ Review</button>
+        </div>
+      </div>
+
+      <!-- SANCTUARY SCENE -->
+      <div class="hero-scene">
+        <div class="claude-sanctuary" id="claude-sanctuary">
+          <div class="sanctuary-ring"></div>
+          <div class="sanctuary-glow"></div>
+          <div class="sanctuary-grid"></div>
+
+          <div class="sanctuary-node node-army">ARMY</div>
+          <div class="sanctuary-node node-eng">ENG</div>
+          <div class="sanctuary-node node-intel">INTEL</div>
+
+          <div class="claude-core">
+            <span class="ear left"></span>
+            <span class="ear right"></span>
+            <span class="eye left"></span>
+            <span class="eye right"></span>
+            <span class="leg l1"></span>
+            <span class="leg l2"></span>
+            <span class="leg l3"></span>
+            <span class="leg l4"></span>
+          </div>
+
+          <div class="scene-label">claude sanctuary active</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- OVERVIEW VIEW -->
+    <section id="view-overview" class="view-panel active-view">
+      <div class="panel-grid panel-grid-overview">
+
+        <section class="panel glass">
+          <div class="panel-head">
+            <h2>System link</h2>
+            <button id="health-refresh-btn" class="ghost-btn sm">Refresh</button>
+          </div>
+          <div id="health-cards" class="card-grid two"></div>
+        </section>
+
+        <section class="panel glass">
+          <div class="panel-head"><h2>Signal corridor</h2></div>
+          <div id="signal-corridor" class="card-grid four"></div>
+        </section>
+
+        <section class="panel glass">
+          <div class="panel-head">
+            <h2>Artifact dock</h2>
+            <button id="load-artifacts-btn" class="ghost-btn sm">Refresh dock</button>
+          </div>
+          <div id="artifact-grid" class="artifact-grid"></div>
+        </section>
+
+        <section class="panel glass">
+          <div class="panel-head">
+            <h2>Memory feed</h2>
+            <button id="load-memory-btn" class="ghost-btn sm">Load memory</button>
+          </div>
+          <div id="memory-list" class="stack-list"></div>
+        </section>
+
+      </div>
+    </section>
+
+    <!-- SIGNALS VIEW -->
+    <section id="view-signals" class="view-panel">
+      <div class="panel-grid panel-grid-signals">
+
+        <section class="panel glass">
+          <div class="panel-head">
+            <h2>Run registry</h2>
+            <button id="load-runs-btn" class="ghost-btn sm">Load runs</button>
+          </div>
+          <div id="runs-list" class="stack-list"></div>
+        </section>
+
+        <section class="panel glass">
+          <div class="panel-head">
+            <h2>Task board</h2>
+            <button id="load-tasks-btn" class="ghost-btn sm">Load tasks</button>
+          </div>
+          <div id="task-board" class="task-lanes"></div>
+        </section>
+
+      </div>
+    </section>
+
+    <!-- OPERATIONS VIEW -->
+    <section id="view-operations" class="view-panel">
+      <div class="panel-grid panel-grid-ops">
+
+        <section class="panel glass">
+          <div class="panel-head"><h2>Launch run</h2></div>
+          <div class="form-grid">
+            <label class="field">
+              <span>Project key</span>
+              <input id="run-project-key" value="demo-project" />
+            </label>
+            <label class="field">
+              <span>Adapter key</span>
+              <input id="run-adapter-key" value="research_project" />
+            </label>
+            <label class="field field-wide">
+              <span>Goal</span>
+              <textarea id="run-goal">Design an overnight AI research pipeline</textarea>
+            </label>
+          </div>
+          <button id="create-run-btn" class="primary-btn">⚡ Launch run</button>
+          <pre id="launch-result" class="result-box"></pre>
+        </section>
+
+        <section class="panel glass">
+          <div class="panel-head"><h2>Dispatch mission</h2></div>
+          <div class="form-grid">
+            <label class="field">
+              <span>General key</span>
+              <input id="dispatch-general-key" value="general_of_the_army" />
+            </label>
+            <label class="field">
+              <span>Task type</span>
+              <input id="dispatch-task-type" value="plan" />
+            </label>
+            <label class="field field-wide">
+              <span>Title</span>
+              <input id="dispatch-title" value="Manual mission dispatch" />
+            </label>
+            <label class="field field-wide">
+              <span>Operator message</span>
+              <textarea id="dispatch-message">Summarize current state and recommend the next move.</textarea>
+            </label>
+          </div>
+          <button id="dispatch-task-btn" class="primary-btn">→ Dispatch mission</button>
+          <pre id="dispatch-result" class="result-box"></pre>
+        </section>
+
+      </div>
+    </section>
+
+    <!-- MEMORY VIEW -->
+    <section id="view-memory" class="view-panel">
+      <div class="panel-grid panel-grid-memory">
+
+        <section class="panel glass">
+          <div class="panel-head"><h2>Notes</h2></div>
+          <div class="form-grid">
+            <label class="field field-wide">
+              <span>Note title</span>
+              <input id="note-title" value="Operator note" />
+            </label>
+            <label class="field field-wide">
+              <span>Note body</span>
+              <textarea id="note-body">Write a persistent note for this project.</textarea>
+            </label>
+          </div>
+          <button id="save-note-btn" class="primary-btn">Save note</button>
+          <pre id="note-result" class="result-box"></pre>
+        </section>
+
+        <section class="panel glass">
+          <div class="panel-head"><h2>Project memory</h2></div>
+          <div id="memory-list-secondary" class="stack-list"></div>
+        </section>
+
+      </div>
+    </section>
+
+    <!-- ARTIFACTS VIEW -->
+    <section id="view-artifacts" class="view-panel">
+      <div class="panel-grid panel-grid-artifacts">
+        <section class="panel glass">
+          <div class="panel-head">
+            <h2>Artifact dock</h2>
+            <button id="load-artifacts-btn-secondary" class="ghost-btn sm">Refresh dock</button>
+          </div>
+          <div id="artifact-grid-secondary" class="artifact-grid"></div>
+        </section>
+      </div>
+    </section>
+
+    <!-- WORKBENCH VIEW -->
+    <section id="view-workbench" class="view-panel">
+      <div class="panel-grid panel-grid-workbench">
+        <section class="panel glass">
+          <div class="panel-head">
+            <h2>Workbench</h2>
+            <button id="load-workbench-btn" class="ghost-btn sm">Refresh workbench</button>
+          </div>
+          <div class="form-grid">
+            <label class="field field-wide">
+              <span>Prefix filter</span>
+              <input id="workbench-prefix" value="" placeholder="f6" />
+            </label>
+          </div>
+          <div id="workbench-grid" class="artifact-grid"></div>
+        </section>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ARTIFACT MODAL -->
+<div id="artifact-modal" class="artifact-modal hidden">
+  <div class="modal-backdrop"></div>
+  <div class="modal-card">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Artifact dock</div>
+        <div id="artifact-modal-subtitle" class="modal-subtitle">Preview</div>
+      </div>
+      <button id="close-artifact-modal" class="ghost-btn sm">✕ Close</button>
+    </div>
+    <div id="artifact-modal-body" class="modal-body"></div>
+  </div>
+</div>
+
+<div id="boot-debug" class="boot-debug"></div>
+
+<script>
+  window.addEventListener("error", function(e) {
+    const b = document.getElementById("boot-debug");
+    if (!b) return;
+    b.style.display = "block";
+    b.textContent = "UI boot error: " + e.message;
+  });
+  window.addEventListener("unhandledrejection", function(e) {
+    const b = document.getElementById("boot-debug");
+    if (!b) return;
+    b.style.display = "block";
+    b.textContent = "UI promise error: " + (e.reason?.message || String(e.reason || "Unknown"));
+  });
+</script>
+
+<script type="module" src="/f62_ui_app.js?v=11"></script>
+</body>
 </html>
