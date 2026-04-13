@@ -215,18 +215,16 @@ try {
 const payload = await listRuns();
 state.runs = pickRows(payload?.runs || payload);
 
-```
 if (!state.activeRunId && state.runs.length) {
-  const first = state.runs[0];
-  state.activeRunId = first.run_id || first.id || "";
-  localStorage.setItem("warroom_active_run_id", state.activeRunId);
+const first = state.runs[0];
+state.activeRunId = first.run_id || first.id || “”;
+localStorage.setItem(“warroom_active_run_id”, state.activeRunId);
 }
 
 syncProjectFromActiveRun();
-renderRuns(el["runs-list"], state.runs, state.activeRunId);
-renderSignalCorridor(el["signal-corridor"], state);
+renderRuns(el[“runs-list”], state.runs, state.activeRunId);
+renderSignalCorridor(el[“signal-corridor”], state);
 renderHeaderMetrics();
-```
 
 } catch (err) {
 console.error(err);
@@ -246,15 +244,13 @@ renderHeaderMetrics();
 return;
 }
 
-```
 const payload = await listTasks(state.activeRunId);
 state.tasks = pickRows(payload);
-renderTaskBoard(el["task-board"], state.tasks);
-renderArtifacts(el["artifact-grid"], state.tasks);
-renderArtifacts(el["artifact-grid-secondary"], state.tasks);
-renderSignalCorridor(el["signal-corridor"], state);
+renderTaskBoard(el[“task-board”], state.tasks);
+renderArtifacts(el[“artifact-grid”], state.tasks);
+renderArtifacts(el[“artifact-grid-secondary”], state.tasks);
+renderSignalCorridor(el[“signal-corridor”], state);
 renderHeaderMetrics();
-```
 
 } catch (err) {
 console.error(err);
@@ -302,15 +298,13 @@ try {
 const data = await createRun(payload);
 el[“launch-result”].textContent = JSON.stringify(data, null, 2);
 
-```
-const runId = data?.run_id || data?.id || "";
+const runId = data?.run_id || data?.id || “”;
 if (runId) setActiveRun(runId);
 
 await refreshRuns();
 await refreshTasks();
 await refreshMemory();
-switchView("signals");
-```
+switchView(“signals”);
 
 } catch (err) {
 console.error(err);
@@ -356,11 +350,9 @@ try {
 const data = await createTask(payload);
 el[“dispatch-result”].textContent = JSON.stringify(data, null, 2);
 
-```
 await refreshTasks();
 await refreshMemory();
-switchView("signals");
-```
+switchView(“signals”);
 
 } catch (err) {
 console.error(err);
@@ -395,11 +387,9 @@ body,
 source_task_id: null,
 });
 
-```
-el["note-result"].textContent = JSON.stringify(data, null, 2);
+el[“note-result”].textContent = JSON.stringify(data, null, 2);
 await refreshMemory();
-switchView("memory");
-```
+switchView(“memory”);
 
 } catch (err) {
 console.error(err);
@@ -517,34 +507,32 @@ await refreshMemory();
 return;
 }
 
-```
-const requeueBtn = event.target.closest("[data-task-requeue]");
+const requeueBtn = event.target.closest(”[data-task-requeue]”);
 if (requeueBtn) {
-  await handleRequeue(requeueBtn.dataset.taskRequeue);
-  return;
+await handleRequeue(requeueBtn.dataset.taskRequeue);
+return;
 }
 
-const deleteBtn = event.target.closest("[data-task-delete]");
+const deleteBtn = event.target.closest(”[data-task-delete]”);
 if (deleteBtn) {
-  await handleDelete(deleteBtn.dataset.taskDelete);
-  return;
+await handleDelete(deleteBtn.dataset.taskDelete);
+return;
 }
 
-const artifactBtn = event.target.closest("[data-artifact-open]");
+const artifactBtn = event.target.closest(”[data-artifact-open]”);
 if (artifactBtn) {
-  try {
-    const payload = JSON.parse(artifactBtn.dataset.artifactOpen);
-    openArtifactModal(
-      el["artifact-modal"],
-      el["artifact-modal-subtitle"],
-      el["artifact-modal-body"],
-      payload
-    );
-  } catch (err) {
-    console.error(err);
-  }
+try {
+const payload = JSON.parse(artifactBtn.dataset.artifactOpen);
+openArtifactModal(
+el[“artifact-modal”],
+el[“artifact-modal-subtitle”],
+el[“artifact-modal-body”],
+payload
+);
+} catch (err) {
+console.error(err);
 }
-```
+}
 
 });
 }

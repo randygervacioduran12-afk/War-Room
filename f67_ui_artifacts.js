@@ -3,7 +3,7 @@ return String(value ?? “”)
 .replaceAll(”&”, “&”)
 .replaceAll(”<”, “<”)
 .replaceAll(”>”, “>”)
-.replaceAll(’”’, “"”);
+.replaceAll(’”’, ‘"’);
 }
 
 function looksLikeJson(value) {
@@ -18,10 +18,11 @@ return (
 function renderJsonBlock(obj) {
 const entries = Object.entries(obj || {});
 return `<div class="kv"> ${entries .map( ([key, val]) =>`
+
 <div class="kv-row">
 <div class="kv-key">${esc(key)}</div>
 <div>${
-typeof val === “object” && val !== null
+typeof val === "object" && val !== null
 ? `<pre>${esc(JSON.stringify(val, null, 2))}</pre>`
 : esc(val)
 }</div>
@@ -56,47 +57,45 @@ inList = false;
 for (const rawLine of lines) {
 const line = rawLine.trim();
 
-```
 if (!line) {
-  flushList();
-  continue;
+flushList();
+continue;
 }
 
-if (line.startsWith("# ")) {
-  flushList();
-  out.push(`<h1>${esc(line.slice(2))}</h1>`);
-  continue;
+if (line.startsWith(”# “)) {
+flushList();
+out.push(`<h1>${esc(line.slice(2))}</h1>`);
+continue;
 }
 
-if (line.startsWith("## ")) {
-  flushList();
-  out.push(`<h2>${esc(line.slice(3))}</h2>`);
-  continue;
+if (line.startsWith(”## “)) {
+flushList();
+out.push(`<h2>${esc(line.slice(3))}</h2>`);
+continue;
 }
 
-if (line.startsWith("### ")) {
-  flushList();
-  out.push(`<h3>${esc(line.slice(4))}</h3>`);
-  continue;
+if (line.startsWith(”### “)) {
+flushList();
+out.push(`<h3>${esc(line.slice(4))}</h3>`);
+continue;
 }
 
-if (line.startsWith("- ") || line.startsWith("* ")) {
-  if (!inList) {
-    out.push("<ul>");
-    inList = true;
-  }
-  out.push(`<li>${esc(line.slice(2))}</li>`);
-  continue;
+if (line.startsWith(”- “) || line.startsWith(”* “)) {
+if (!inList) {
+out.push(”<ul>”);
+inList = true;
+}
+out.push(`<li>${esc(line.slice(2))}</li>`);
+continue;
 }
 
 flushList();
 
 const html = esc(line)
-  .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-  .replace(/`([^`]+)`/g, "<code>$1</code>");
+.replace(/**(.*?)**/g, “<strong>$1</strong>”)
+.replace(/`([^`]+)`/g, “<code>$1</code>”);
 
 out.push(`<p>${html}</p>`);
-```
 
 }
 
@@ -146,12 +145,12 @@ const parts = [];
 if (artifact?.href || artifact?.path || artifact?.type) {
 parts.push(`<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;"> ${ artifact?.href ?`
 <a
-href="${esc(artifact.href)}"
-target="_blank"
-rel="noreferrer"
-class="ghost-btn sm"
-style="display:inline-flex;align-items:center;justify-content:center;"
->
+href=”${esc(artifact.href)}”
+target=”_blank”
+rel=“noreferrer”
+class=“ghost-btn sm”
+style=“display:inline-flex;align-items:center;justify-content:center;”
+
 Open file
 </a>
 `: "" } ${artifact?.path ?`<div class="pill">${esc(artifact.path)}</div>`: ""} ${artifact?.type ?`<div class="pill">${esc(artifact.type)}</div>`: ""} </div>`);

@@ -20,12 +20,10 @@ const rect = hero.getBoundingClientRect();
 const x = (e.clientX - rect.left) / rect.width - 0.5;
 const y = (e.clientY - rect.top) / rect.height - 0.5;
 
-```
-const orbit = hero.querySelector(".hero-orbit");
+const orbit = hero.querySelector(”.hero-orbit”);
 if (orbit) {
-  orbit.style.transform = `translate(${x * 8}px, ${y * 8}px)`;
+orbit.style.transform = `translate(${x * 8}px, ${y * 8}px)`;
 }
-```
 
 });
 
