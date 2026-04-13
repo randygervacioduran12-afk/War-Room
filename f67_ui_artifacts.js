@@ -3,7 +3,7 @@ return String(value ?? “”)
 .replaceAll(”&”, “&”)
 .replaceAll(”<”, “<”)
 .replaceAll(”>”, “>”)
-.replaceAll(’”’, ‘"’);
+.replaceAll(’”’, ‘”’);
 }
 
 function looksLikeJson(value) {
@@ -92,7 +92,7 @@ continue;
 flushList();
 
 const html = esc(line)
-.replace(/**(.*?)**/g, “<strong>$1</strong>”)
+.replace(g, “<strong>$1</strong>”)
 .replace(/`([^`]+)`/g, “<code>$1</code>”);
 
 out.push(`<p>${html}</p>`);
