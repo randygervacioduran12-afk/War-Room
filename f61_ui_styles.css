@@ -115,7 +115,7 @@ a { color: inherit; text-decoration: none; }
   pointer-events: none;
 }
 
-/* ── APP SHELL — sidebar + center ── */
+/* ── APP SHELL -- sidebar + center ── */
 .app-shell {
   position: relative; z-index: 1;
   display: grid;
@@ -123,7 +123,7 @@ a { color: inherit; text-decoration: none; }
   height: 100vh; overflow: hidden;
 }
 
-/* ── SIDEBAR — icon nav ── */
+/* ── SIDEBAR -- icon nav ── */
 .sidebar {
   width: var(--sw); height: 100vh;
   display: flex; flex-direction: column; align-items: center;
@@ -211,7 +211,7 @@ a { color: inherit; text-decoration: none; }
 .kpi-label { font-size: 9px; font-weight: 700; letter-spacing: 0.10em; text-transform: uppercase; color: var(--t4); margin-bottom: 1px; }
 .kpi-val { color: var(--t1); font-weight: 700; font-size: 12px; }
 
-/* ── WORKSPACE SPLIT — hero left, panels right ── */
+/* ── WORKSPACE SPLIT -- hero left, panels right ── */
 .workspace-split {
   display: grid;
   grid-template-columns: 1fr 0fr;
@@ -223,7 +223,7 @@ a { color: inherit; text-decoration: none; }
   grid-template-columns: 420px 1fr;
 }
 
-/* ── HERO PANE — Claude always visible ── */
+/* ── HERO PANE -- Claude always visible ── */
 .hero-pane {
   position: relative;
   display: grid;
@@ -234,7 +234,7 @@ a { color: inherit; text-decoration: none; }
   gap: 20px;
 }
 
-/* Floating glass card — Linkin Park spatial music player */
+/* Floating glass card -- Linkin Park spatial music player */
 .hero-glass-card {
   position: relative; z-index: 2;
   display: flex; flex-direction: column; gap: 16px;
@@ -298,7 +298,7 @@ a { color: inherit; text-decoration: none; }
   transform-style: preserve-3d; transition: transform 280ms ease;
 }
 
-/* Rings — Reflect singularity */
+/* Rings -- Reflect singularity */
 .s-ring { position: absolute; top: 50%; left: 50%; border-radius: 50%; border: 1px solid; }
 .ring-a { width:100%;aspect-ratio:1; transform:translate(-50%,-50%); border-color:rgba(210,118,78,0.11); animation:ringRot 26s linear infinite; }
 .ring-a::before {
@@ -320,7 +320,7 @@ a { color: inherit; text-decoration: none; }
 }
 @keyframes glowPulse { 0%,100%{opacity:0.75;transform:scale(1)} 50%{opacity:1;transform:scale(1.08)} }
 
-/* LED floor grid — Avolis */
+/* LED floor grid -- Avolis */
 .s-floor {
   position:absolute; bottom:8%;left:6%;right:6%;height:22%;
   background-image:radial-gradient(circle, rgba(210,118,78,0.22) 1.5px, transparent 1.5px);
@@ -385,7 +385,7 @@ a { color: inherit; text-decoration: none; }
   animation:pulse 2.5s ease-in-out infinite;
 }
 
-/* ── PANEL STAGE — glass panels slide in ── */
+/* ── PANEL STAGE -- glass panels slide in ── */
 .panel-stage {
   height: calc(100vh - var(--kh));
   overflow-y: auto;
@@ -514,7 +514,7 @@ textarea { min-height: 100px; resize: vertical; font-family: var(--f-m); font-si
 .dot.warn { background:var(--warn); box-shadow:0 0 7px rgba(255,208,96,0.5); }
 .dot.err  { background:var(--err);  box-shadow:0 0 7px rgba(255,63,90,0.5); }
 
-/* ── MODAL — 40px blur layer 3 ── */
+/* ── MODAL -- 40px blur layer 3 ── */
 .modal-overlay.hidden { display: none; }
 .modal-overlay {
   position:fixed; inset:0; z-index:100;

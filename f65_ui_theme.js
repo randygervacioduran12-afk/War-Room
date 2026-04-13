@@ -43,9 +43,9 @@ export function applyTheme(i = 0) {
 idx = ((i % THEMES.length) + THEMES.length) % THEMES.length;
 const t = THEMES[idx];
 document.body.style.background = t.bg;
-document.documentElement.style.setProperty(”–orange”, t.orange);
-document.documentElement.style.setProperty(”–amber”,  t.orange === “#d97b55” ? “#e9a355” : t.orange);
-document.documentElement.style.setProperty(”–cyan”,   t.cyan);
+document.documentElement.style.setProperty(”-orange”, t.orange);
+document.documentElement.style.setProperty(”-amber”,  t.orange === “#d97b55” ? “#e9a355” : t.orange);
+document.documentElement.style.setProperty(”-cyan”,   t.cyan);
 localStorage.setItem(“warroom_theme”, String(idx));
 }
 

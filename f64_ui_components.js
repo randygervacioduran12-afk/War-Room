@@ -3,7 +3,7 @@ return String(value ?? “”)
 .replaceAll(”&”, “&”)
 .replaceAll(”<”, “<”)
 .replaceAll(”>”, “>”)
-.replaceAll(’”’, “””);
+.replaceAll(’”’, ‘"’);
 }
 
 function parseMaybeJson(value) {
@@ -23,7 +23,7 @@ if (value == null) return “”;
 let text = typeof value === “string” ? value : JSON.stringify(value, null, 2);
 text = text.replace(/`[\s\S]*?`/g, “[code block]”);
 text = text.replace(/\s+/g, “ “).trim();
-return text.length <= max ? text : `${text.slice(0, max - 1)}…`;
+return text.length <= max ? text : `${text.slice(0, max - 1)}...`;
 }
 
 function formatDate(value) {
@@ -88,7 +88,7 @@ created_at: task.updated_at || task.created_at || “”,
 return null;
 }
 
-/* ── statusPill — semantic Destiny-style pill ── */
+/* – statusPill – semantic Destiny-style pill – */
 function statusPill(status) {
 const map = {
 queued:    “pill pill-queued”,
@@ -99,7 +99,7 @@ failed:    “pill pill-failed”,
 return `<span class="${map[status] || "pill"}">${esc(status || "unknown")}</span>`;
 }
 
-/* ── emptyState helper ── */
+/* – emptyState helper – */
 function emptyState(icon, message) {
 return `<div style="text-align:center;padding:36px 20px;color:var(--text-3);">
 
@@ -109,9 +109,9 @@ return `<div style="text-align:center;padding:36px 20px;color:var(--text-3);">
   </div>`;
 }
 
-/* ═══════════════════════════════════════════
+/* ===========================================
 EXPORTS
-═══════════════════════════════════════════ */
+=========================================== */
 
 export function pickRows(payload) {
 if (Array.isArray(payload))       return payload;
@@ -129,7 +129,7 @@ const ok = !!health?.ok;
 target.innerHTML = ` <span class="dot ${ok ? "ok" : "err"}"></span> <span style="font-family:var(--f-mono);font-size:11.5px;"> ${esc(ok ? "command link active" : "attention needed")} </span>`;
 }
 
-/* 4 health cards — Finance dashboard KPI style */
+/* 4 health cards – Finance dashboard KPI style */
 export function renderHealthCards(target, health) {
 if (!target) return;
 const cards = [
@@ -141,7 +141,7 @@ const cards = [
 target.innerHTML = cards.map(([title, value, meta]) => ` <div class="health-card"> <div class="card-title">${esc(title)}</div> <div style="font-family:var(--f-display);font-size:26px;font-weight:800;line-height:1.05; margin:8px 0 5px;letter-spacing:-0.025em;">${esc(value)}</div> <div class="card-meta">${esc(meta)}</div> </div>`).join(””);
 }
 
-/* 8-card signal corridor — Destiny dashboard stats */
+/* 8-card signal corridor – Destiny dashboard stats */
 export function renderSignalCorridor(target, state) {
 if (!target) return;
 const queued    = state.tasks.filter(t => t.status === “queued”).length;
@@ -157,20 +157,20 @@ const cards = [
 [“Completed”,  completed,                     “delivered outcomes”, completed ? “ok”   : “”],
 [“Failed”,     failed,                        “needs review”,       failed    ? “err”  : “”],
 [“Artifacts”,  artifacts,                     “dock-ready outputs”, artifacts ? “ok”   : “”],
-[“Project”,    state.activeProjectKey || “—”, “current context”,   “”],
+[“Project”,    state.activeProjectKey || “–”, “current context”,   “”],
 [“Active run”, state.activeRunId
 ? state.activeRunId.slice(0, 16) + “…”
-: “—”,                                      “selected mission”,  state.activeRunId ? “ok” : “”],
+: “–”,                                      “selected mission”,  state.activeRunId ? “ok” : “”],
 ];
 
 target.innerHTML = cards.map(([title, value, meta, dot]) => `<div class="signal-card"> <div class="card-title">${esc(title)}</div> <div style="font-family:var(--f-display);font-size:24px;font-weight:800; line-height:1.05;margin:7px 0 4px;word-break:break-word;letter-spacing:-0.02em;"> ${dot ?`<span class="dot ${dot}" style="display:inline-block;margin-right:8px;vertical-align:middle;"></span>` : ""}${esc(String(value))} </div> <div class="card-meta">${esc(meta)}</div> </div>`).join(””);
 }
 
-/* Run list — Agentrooms agent card style */
+/* Run list – Agentrooms agent card style */
 export function renderRuns(target, runs, activeRunId) {
 if (!target) return;
 if (!runs.length) {
-target.innerHTML = emptyState(“⚡”, “No runs yet — launch one to begin.”);
+target.innerHTML = emptyState(“⚡”, “No runs yet – launch one to begin.”);
 return;
 }
 target.innerHTML = runs.map(run => {
@@ -180,7 +180,7 @@ return ` <div class="run-card ${isActive ? "active-run" : ""}"> <div class="card
 }).join(””);
 }
 
-/* Memory cards — richer display */
+/* Memory cards – richer display */
 export function renderMemory(target, rows) {
 if (!target) return;
 if (!rows.length) {
@@ -191,7 +191,7 @@ target.innerHTML = rows.map(row => {
 const body = row.body || row.content || “”;
 const bits = [
 row.memory_type || “note”,
-row.source_task_id ? `task=${row.source_task_id.slice(0,10)}…` : “”,
+row.source_task_id ? `task=${row.source_task_id.slice(0,10)}...` : “”,
 row.created_at ? formatDate(row.created_at) : “”,
 ].filter(Boolean);
 return `<div class="memory-card"> <div class="card-title">${esc(row.title || row.memory_id || "Memory entry")}</div> <div class="task-tags"> ${bits.map(b =>`<span class="pill">${esc(b)}</span>`).join("")} </div> <div class="card-meta" style="margin-top:10px;line-height:1.6;"> ${esc(previewText(body, 600))} </div> </div>`;
@@ -202,13 +202,13 @@ return `<div class="memory-card"> <div class="card-title">${esc(row.title || row
 export function renderWorkbench(target, files) {
 if (!target) return;
 if (!files.length) {
-target.innerHTML = emptyState(“⌗”, “No matching files — try a different prefix.”);
+target.innerHTML = emptyState(“⌗”, “No matching files – try a different prefix.”);
 return;
 }
 target.innerHTML = files.map(file => ` <div class="file-card"> <div class="card-title">${esc(file.name || file.path || "file")}</div> <div class="card-meta" style="font-family:var(--f-mono);font-size:11px;"> ${esc(file.path || file.name || "")} </div> </div>`).join(””);
 }
 
-/* Artifact cards — violet glass style */
+/* Artifact cards – violet glass style */
 export function renderArtifacts(target, tasks) {
 if (!target) return;
 const rows = tasks
@@ -237,7 +237,7 @@ const artifact = normalizeArtifact(task);
 return `<div class="task-card"> <div class="task-title">${esc(task.title || "Untitled task")}</div> <div class="task-meta" style="font-family:var(--f-mono);font-size:10.5px;margin-top:5px;line-height:1.7;"> ${esc(task.task_id || "")} · ${esc(task.general_key || "")} · ${esc(task.task_type || "")} </div> ${artifact?.body ?`<div class="card-meta" style="margin-top:10px;">${esc(previewText(artifact.body, 200))}</div>` : ""} <div class="task-tags"> ${statusPill(task.status)} <span class="pill">${esc(task.project_key || "no-project")}</span> </div> <div class="task-actions"> <button class="ghost-btn sm" data-task-requeue="${esc(task.task_id || "")}">↺ Requeue</button> <button class="ghost-btn sm" data-task-delete="${esc(task.task_id || "")}">✕ Delete</button> </div> </div>`;
 }
 
-/* Task board — 4 lane Destiny-style board */
+/* Task board – 4 lane Destiny-style board */
 export function renderTaskBoard(target, tasks) {
 if (!target) return;
 const lanes = [
