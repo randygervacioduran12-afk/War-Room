@@ -1,11 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap');
 
 :root {
-  --text-2: var(--t2);
-  --text-3: var(--t3);
-  --f-mono: var(--f-m);
-  --f-display: var(--f-d);
-
   --void:        #030409;
   --glass-bg:    rgba(8, 9, 22, 0.80);
   --glass-card:  rgba(11, 12, 28, 0.74);
