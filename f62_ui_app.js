@@ -133,13 +133,20 @@ renderRuns(el[“runs-list”], state.runs, state.activeRunId);
 }
 
 function switchView(view) {
+document.querySelectorAll(”.nav-icon[data-panel]”).forEach((btn) => {
+btn.classList.toggle(“active”, btn.dataset.panel === view);
+});
+document.querySelectorAll(”.mob-btn[data-panel]”).forEach((btn) => {
+btn.classList.toggle(“active”, btn.dataset.panel === view);
+});
 document.querySelectorAll(”.nav-chip”).forEach((btn) => {
 btn.classList.toggle(“active”, btn.dataset.view === view);
 });
-
 document.querySelectorAll(”.view-panel”).forEach((section) => {
 section.classList.toggle(“active-view”, section.id === `view-${view}`);
 });
+const ws = document.getElementById(“workspace-split”);
+if (ws) ws.classList.toggle(“panels-open”, !!view);
 }
 
 function renderHeaderMetrics() {
@@ -452,6 +459,12 @@ core.style.transform = “rotateX(0deg) rotateY(0deg) translate3d(0,0,0)”;
 }
 
 function bindEvents() {
+document.querySelectorAll(”.nav-icon[data-panel]”).forEach((btn) => {
+btn.addEventListener(“click”, () => switchView(btn.dataset.panel));
+});
+document.querySelectorAll(”.mob-btn[data-panel]”).forEach((btn) => {
+btn.addEventListener(“click”, () => switchView(btn.dataset.panel));
+});
 document.querySelectorAll(”.nav-chip”).forEach((btn) => {
 btn.addEventListener(“click”, () => switchView(btn.dataset.view));
 });
@@ -482,7 +495,9 @@ document.getElementById(“hero-dispatch-btn”)?.addEventListener(“click”, 
 
 document.getElementById(“auto-poll-tasks-btn”)?.addEventListener(“click”, (event) => {
 state.autoPollTasks = !state.autoPollTasks;
-event.currentTarget.textContent = `Auto poll: ${state.autoPollTasks ? "on" : "off"}`;
+const btn = event.currentTarget;
+const span = btn.querySelector(“span”);
+if (span) span.textContent = `Poll: ${state.autoPollTasks ? "on" : "off"}`;
 });
 
 document.getElementById(“close-artifact-modal”)?.addEventListener(“click”, () => {
@@ -555,7 +570,7 @@ cacheDom();
 bindEvents();
 bootSanctuaryMotion();
 setAgentPreset(state.activeAgentPreset);
-switchView(“overview”);
+switchView(“overview”); // opens panel-stage on load
 await refreshAll();
 startPolling();
 }

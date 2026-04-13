@@ -3,7 +3,7 @@ return String(value ?? “”)
 .replaceAll(”&”, “&”)
 .replaceAll(”<”, “<”)
 .replaceAll(”>”, “>”)
-.replaceAll(’”’, “"”);
+.replaceAll(’”’, “””);
 }
 
 function parseMaybeJson(value) {
@@ -102,6 +102,7 @@ return `<span class="${map[status] || "pill"}">${esc(status || "unknown")}</span
 /* ── emptyState helper ── */
 function emptyState(icon, message) {
 return `<div style="text-align:center;padding:36px 20px;color:var(--text-3);">
+
 <div style="font-size:32px;margin-bottom:12px;opacity:0.4;">${icon}</div>
 <div style="font-family:var(--f-mono);font-size:12px;">${esc(message)}</div>
 
