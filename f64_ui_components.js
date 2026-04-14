@@ -24,9 +24,18 @@ function parseMaybeJson(value) {
 
 function previewText(value, max = 220) {
   if (value == null) return "";
+
   let text = typeof value === "string" ? value : JSON.stringify(value, null, 2);
+
   text = text.replace(/```[\s\S]*?```/g, "[code block]");
+  text = text.replace(/^#{1,6}\s+/gm, "");
+  text = text.replace(/\*\*(.+?)\*\*/g, "$1");
+  text = text.replace(/\*(.+?)\*/g, "$1");
+  text = text.replace(/`([^`]+)`/g, "$1");
+  text = text.replace(/^\s*[-*]\s+/gm, "");
+  text = text.replace(/\|/g, " ");
   text = text.replace(/\s+/g, " ").trim();
+
   return text.length <= max ? text : `${text.slice(0, max - 3)}...`;
 }
 
@@ -222,7 +231,7 @@ export function renderRuns(target, runs, activeRunId) {
           </span>
         </div>
         <div class="run-actions">
-          <button class="ghost-btn sm" data-run-select="${esc(runId)}">
+          <button class="btn-ghost sm" data-run-select="${esc(runId)}">
             ${isActive ? "✓ Active run" : "Set active"}
           </button>
         </div>
@@ -313,8 +322,8 @@ export function renderArtifacts(target, tasks) {
           ${artifact.general_key ? `<span class="pill">${esc(artifact.general_key)}</span>` : ""}
         </div>
         <div class="artifact-links">
-          ${artifact.href ? `<a class="ghost-btn sm" href="${esc(artifact.href)}" target="_blank" rel="noreferrer">Open file</a>` : ""}
-          <button class="ghost-btn sm" data-artifact-open='${encoded}'>Preview</button>
+          ${artifact.href ? `<a class="btn-ghost sm" href="${esc(artifact.href)}" target="_blank" rel="noreferrer">Open file</a>` : ""}
+          <button class="btn-ghost sm" data-artifact-open='${encoded}'>Preview</button>
         </div>
         ${artifact.path ? `<div class="card-meta" style="margin-top:10px;font-family:var(--f-mono);font-size:10.5px;opacity:0.6;">${esc(artifact.path)}</div>` : ""}
       </div>
@@ -337,8 +346,8 @@ function renderTaskCard(task) {
         <span class="pill">${esc(task.project_key || "no-project")}</span>
       </div>
       <div class="task-actions">
-        <button class="ghost-btn sm" data-task-requeue="${esc(task.task_id || "")}">↺ Requeue</button>
-        <button class="ghost-btn sm" data-task-delete="${esc(task.task_id || "")}">✕ Delete</button>
+        <button class="btn-ghost sm" data-task-requeue="${esc(task.task_id || "")}">↺ Requeue</button>
+        <button class="btn-ghost sm" data-task-delete="${esc(task.task_id || "")}">✕ Delete</button>
       </div>
     </div>
   `;

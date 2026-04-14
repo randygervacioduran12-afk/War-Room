@@ -155,7 +155,7 @@ export function openArtifactModal(modal, subtitleEl, bodyEl, payload) {
             href="${esc(artifact.href)}"
             target="_blank"
             rel="noreferrer"
-            class="ghost-btn sm"
+            class="btn-ghost sm"
             style="display:inline-flex;align-items:center;justify-content:center;"
           >
             Open file
