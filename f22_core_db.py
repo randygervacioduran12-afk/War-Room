@@ -1,9 +1,14 @@
+import json
 import os
 import sqlite3
 from pathlib import Path
 from typing import Any, Iterable, Optional
 
 DB_PATH = os.getenv("APP_DB_PATH", "war_room.db")
+
+
+def j(value: Any) -> str:
+    return json.dumps(value if value is not None else {}, ensure_ascii=False)
 
 
 def _db_file() -> Path:
