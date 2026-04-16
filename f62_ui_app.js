@@ -25,7 +25,7 @@ renderTaskBoard,
 
 import { openArtifactModal, closeArtifactModal } from "/f67_ui_artifacts.js";
 import { normalizeWorkbenchPayload } from "/f66_ui_workbench.js";
-import { bootTheme, cycleTheme } from "/f65_ui_theme.js";
+import { bootTheme } from "/f65_ui_theme.js";
 
 const state = {
 activeRunId: localStorage.getItem("warroom_active_run_id") || "",
